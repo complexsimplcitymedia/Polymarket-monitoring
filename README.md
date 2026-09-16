@@ -86,6 +86,48 @@ cp .env.example .env
 ./scripts/start_frontend.sh # frontend only (port 5173)
 ```
 
+## Architecture & Infrastructure
+
+Detailed distributed server topology, node specifications, IP addresses, and firewall configurations are mapped in [SERVERS.md](file:///home/wolf/polymarket-intelligence/SERVERS.md).
+
+```mermaid
+flowchart TD
+    A[React Frontend] --> B[FastAPI Backend]
+    B --> C[(SQLite / PostgreSQL 17 + pgvector)]
+    B --> D[Polymarket API & CLOB]
+    B --> E[NewsAPI & Tavily]
+    B --> F[Ollama Node 06 LLM Engine]
+    G[Background Scheduler & CrewAI] --> B
+```
+
+| Component | Cloud Host VM | Purpose |
+|-----------|----------------|---------|
+| **React Frontend** | Server 07 VM (`:5173`) | Single-page dashboard with Tailwind CSS, Zustand, and TradingView charts |
+| **FastAPI Backend** | Server 07 VM (`:8000`) | High-performance REST API serving market data, scanner analytics, and debate agents |
+| **Database Layer** | Server 07 VM (`:5432`) | PostgreSQL 17 with Timescale `pgai` and `pgvector` |
+| **LLM Inference** | Node 06 VM (`:11434`) | Dedicated Ollama engine running `qwen2.5:3b`, `qwen2.5:7b`, `deepseek-r1`, and `qwen3-embedding:4b` |
+| **Edge Ingress** | Server 07 VM (`:80`, `:443`) | Reverse proxy with TLS at `https://polymarket.complexsimplicity-ai.com` |
+
+> [!NOTE]
+> All runtime services, APIs, databases, and LLM instances run **100% on the remote cloud VMs**. Local development machines (Ubuntu WSL / Windows IDE) are strictly thin clients for code editing and git staging.
+
+See [SERVERS.md](file:///home/wolf/polymarket-intelligence/SERVERS.md) for the complete cloud VM inventory, network routing, and Swarm commands.
+
+## Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEWS_API_KEY` | API key from [NewsAPI](https://newsapi.org) | Required |
+| `DATABASE_URL` | SQLite connection string | `sqlite+aiosqlite:///./polymarket.db` |
+| `CORS_ORIGINS` | Allowed frontend origins | `http://localhost:5173` |
+| `HOST` | Backend server host | `0.0.0.0` |
+| `PORT` | Backend server port | `8000` |
+| `DEBUG` | Enable debug mode | `true` |
+| `POLYMARKET_API_KEY` | Polymarket API Key | Required for trading/auth |
+| `POLYMARKET_SECRET` | Polymarket API Secret | Required for trading/auth |
+| `POLYMARKET_PASSPHRASE`| Polymarket API Passphrase | Required for trading/auth |
+| `GEMINI_API_KEY` | Google Gemini API Key | Required for AI Debate |
+| `TAVILY_API_KEY` | Tavily Search API Key | Required for AI Debate |
 ## API Reference
 
 ### Sports Scanners

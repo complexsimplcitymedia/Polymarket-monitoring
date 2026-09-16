@@ -113,65 +113,32 @@ export function AlphaTerminal() {
         }
     }
 
-    const handleExecuteOpportunityClick = async (opId: number, title: string) => {
-        setExecutionFeedback(`Executing "${title}"...`)
-        try {
-            const res = await executeOp.mutateAsync({
-                opportunity_id: opId,
-                budget_usdc: tradeBudget,
-                dry_run: dryRun,
-            })
-            setExecutionFeedback(`Success: ${res.execution?.status || 'FILLED'} - Order ID: ${res.execution?.order_id || 'simulated'}`)
-            setTimeout(() => setExecutionFeedback(null), 6000)
-        } catch (e: any) {
-            setExecutionFeedback(`Error: ${e.response?.data?.detail || e.message}`)
-            setTimeout(() => setExecutionFeedback(null), 8000)
-        }
+    const handleExecuteOpportunityClick = (opId: number, title: string, price?: number) => {
+        const oddsPrice = price && price > 0 ? price : 0.5
+        const mult = (1 / oddsPrice).toFixed(2)
+        const gross = (tradeBudget * parseFloat(mult)).toFixed(2)
+        const profit = (parseFloat(gross) - tradeBudget).toFixed(2)
+        setExecutionFeedback(`[Payout Simulation] $${tradeBudget.toFixed(2)} stake on "${title}": Potential Payout $${gross} (${mult}x multiplier, +$${profit} net profit at settlement).`)
+        setTimeout(() => setExecutionFeedback(null), 8000)
     }
 
-    const handleExecuteParlayClick = async (parlay: ParlayOpportunity) => {
-        setExecutionFeedback(`Submitting Parlay bundle "${parlay.title}"...`)
-        try {
-            const res = await placeParlay.mutateAsync({
-                legs: parlay.legs.map((l) => ({
-                    token_id: l.token_id || 'simulated_token',
-                    price: l.price,
-                    side: l.side,
-                    market_title: l.title,
-                })),
-                total_budget: tradeBudget,
-                dry_run: dryRun,
-            })
-            setExecutionFeedback(`Parlay Executed: ${res.status} (${res.successful_orders}/${res.total_legs} legs filled)`)
-            setTimeout(() => setExecutionFeedback(null), 6000)
-        } catch (e: any) {
-            setExecutionFeedback(`Error: ${e.response?.data?.detail || e.message}`)
-            setTimeout(() => setExecutionFeedback(null), 8000)
-        }
+    const handleExecuteParlayClick = (parlay: ParlayOpportunity) => {
+        const multNum = parseFloat(parlay.payout_multiplier?.replace('x', '') || '3.5')
+        const gross = (tradeBudget * multNum).toFixed(2)
+        const profit = (parseFloat(gross) - tradeBudget).toFixed(2)
+        setExecutionFeedback(`[Payout Simulation] $${tradeBudget.toFixed(2)} Parlay bundle "${parlay.title}": Potential Payout $${gross} (${parlay.payout_multiplier} multiplier, +$${profit} net profit across all ${parlay.legs.length} legs).`)
+        setTimeout(() => setExecutionFeedback(null), 8000)
     }
 
-    const handleQuickOrderSubmit = async (e: React.FormEvent) => {
+    const handleQuickOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (!clobTokenId) {
-            setExecutionFeedback('Error: Token ID is required')
-            return
-        }
-        setExecutionFeedback(`Submitting ${clobSide} limit order...`)
-        try {
-            const res = await placeOrder.mutateAsync({
-                token_id: clobTokenId,
-                price: clobPrice,
-                size: clobSize,
-                side: clobSide,
-                dry_run: dryRun,
-            })
-            setExecutionFeedback(`Order Placed: ${res.status || 'OK'} - Order ID: ${res.order_id || 'simulated'}`)
-            refetchOrders()
-            setTimeout(() => setExecutionFeedback(null), 6000)
-        } catch (e: any) {
-            setExecutionFeedback(`Failed: ${e.response?.data?.detail || e.message}`)
-            setTimeout(() => setExecutionFeedback(null), 8000)
-        }
+        const estCost = (clobSize * clobPrice).toFixed(2)
+        const mult = (1 / (clobPrice || 0.01)).toFixed(2)
+        const potentialPayout = (clobSize * 1.0).toFixed(2)
+        const netProfit = (parseFloat(potentialPayout) - parseFloat(estCost)).toFixed(2)
+        const roi = (((1 - clobPrice) / clobPrice) * 100).toFixed(0)
+        setExecutionFeedback(`[Multiplier Calculator] $${estCost} stake at ${(clobPrice * 100).toFixed(0)}¢/share (${mult}x multiplier) -> Potential Return $${potentialPayout} (+${roi}% ROI, +$${netProfit} profit). Pure analytical simulation.`)
+        setTimeout(() => setExecutionFeedback(null), 9000)
     }
 
     return (
@@ -179,65 +146,40 @@ export function AlphaTerminal() {
             {/* Top Control Bar & Live Status */}
             <div className="glass-card rounded-2xl p-4 lg:p-6 border border-white/10 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 relative z-10">
-                    <div className="space-y-1">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 relative z-10">                    <div className="space-y-1">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-accent-600 text-white shadow-lg shadow-primary-900/30">
                                 <Flame className="w-6 h-6 animate-pulse text-amber-300" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h2 className="text-2xl font-bold text-white tracking-tight">Alpha Execution Terminal</h2>
-                                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                        Tailscale Node chi6 Active
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">Alpha Intelligence Terminal</h2>
+                                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                                        Probabilistic EV Engine Active
                                     </span>
                                 </div>
                                 <p className="text-xs sm:text-sm text-surface-300">
-                                    Autonomous prediction market alpha engine with NOAA probabilistic edge, AMD EPYC LLM verification, and direct CLOB execution.
+                                    Institutional prediction market intelligence engine with NOAA probabilistic edge, multi-model weather consensus, and real-time CLOB multipliers.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Quick Stats & Toggles */}
+                    {/* Calculator Stake Controls */}
                     <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
-                        {/* Trading Mode Switcher */}
-                        <div className="flex items-center bg-surface-900/80 border border-white/10 rounded-xl p-1 text-xs">
-                            <button
-                                onClick={() => setDryRun(true)}
-                                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                                    dryRun
-                                        ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow-sm'
-                                        : 'text-surface-400 hover:text-white'
-                                }`}
-                            >
-                                Paper / Dry-Run
-                            </button>
-                            <button
-                                onClick={() => setDryRun(false)}
-                                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                                    !dryRun
-                                        ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                                        : 'text-surface-400 hover:text-white'
-                                }`}
-                            >
-                                Live On-Chain
-                            </button>
-                        </div>
-
-                        {/* Trade Size Control */}
-                        <div className="flex items-center gap-2 bg-surface-900/80 border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                            <DollarSign className="w-3.5 h-3.5 text-surface-400" />
-                            <span className="text-surface-400 font-medium">Bet Size:</span>
-                            <div className="flex items-center gap-1">
-                                {[2, 5, 10, 25].map((val) => (
+                        {/* Stake Amount Selector */}
+                        <div className="flex items-center gap-2 bg-surface-900/80 border border-white/10 rounded-xl px-3.5 py-2 text-xs">
+                            <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-surface-400 font-medium">Calculator Stake:</span>
+                            <div className="flex items-center gap-1.5">
+                                {[2, 5, 10, 25, 50, 100].map((val) => (
                                     <button
                                         key={val}
                                         onClick={() => setTradeBudget(val)}
-                                        className={`px-2 py-0.5 rounded font-mono font-semibold transition-colors ${
+                                        className={`px-2.5 py-1 rounded-lg font-mono font-semibold transition-all ${
                                             tradeBudget === val
-                                                ? 'bg-primary-500 text-white'
-                                                : 'text-surface-300 hover:text-white bg-surface-800'
+                                                ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
+                                                : 'text-surface-300 hover:text-white bg-surface-800/80'
                                         }`}
                                     >
                                         ${val}
@@ -246,32 +188,20 @@ export function AlphaTerminal() {
                             </div>
                         </div>
 
-                        {/* Wallet Balance Widget */}
-                        <div className="flex items-center gap-3 bg-surface-900/80 border border-white/10 rounded-xl px-4 py-1.5">
+                        {/* Stake Display Widget */}
+                        <div className="flex items-center gap-3 bg-surface-900/80 border border-white/10 rounded-xl px-4 py-2 font-mono">
                             <div className="text-left">
                                 <div className="text-[10px] uppercase tracking-wider text-surface-400 font-semibold">
-                                    Collateral Balance
+                                    Hypothetical Stake
                                 </div>
-                                <div className="text-sm font-bold font-mono text-white flex items-center gap-1">
-                                    {statusLoading ? (
-                                        <span className="text-surface-500">Loading...</span>
-                                    ) : (
-                                        <>
-                                            <span className="text-emerald-400">
-                                                ${(tradingStatus?.balance_usdc ?? 0).toFixed(2)}
-                                            </span>
-                                            <span className="text-xs text-surface-400 font-normal">USDC</span>
-                                        </>
-                                    )}
+                                <div className="text-sm font-bold text-white flex items-center gap-1">
+                                    <span className="text-amber-400 font-bold">${tradeBudget.toFixed(2)}</span>
+                                    <span className="text-xs text-surface-400 font-normal">USDC</span>
                                 </div>
                             </div>
                             <div
-                                className={`w-2.5 h-2.5 rounded-full ${
-                                    tradingStatus?.status === 'READY'
-                                        ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                                        : 'bg-amber-400'
-                                }`}
-                                title={tradingStatus?.message || 'Status'}
+                                className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                                title="Analytical Calculation Ready"
                             />
                         </div>
 
@@ -282,21 +212,21 @@ export function AlphaTerminal() {
                             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs transition-all shadow-lg shadow-primary-900/30 disabled:opacity-50"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${triggerScan.isPending ? 'animate-spin' : ''}`} />
-                            {triggerScan.isPending ? 'Scanning...' : 'Scan Alpha Now'}
+                            {triggerScan.isPending ? 'Scanning Markets...' : 'Scan Alpha Now'}
                         </button>
                     </div>
                 </div>
 
                 {/* Execution Feedback Notification Toast */}
                 {executionFeedback && (
-                    <div className="mt-4 p-3 rounded-xl bg-surface-900/90 border border-primary-500/40 text-xs font-mono text-white flex items-center justify-between animate-fadeIn">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-primary-400" />
+                    <div className="mt-4 p-3.5 rounded-xl bg-surface-900/95 border border-primary-500/40 text-xs font-mono text-white flex items-center justify-between animate-fadeIn shadow-xl">
+                        <div className="flex items-center gap-2.5">
+                            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span>{executionFeedback}</span>
                         </div>
                         <button
                             onClick={() => setExecutionFeedback(null)}
-                            className="text-surface-400 hover:text-white"
+                            className="text-surface-400 hover:text-white ml-2 text-sm"
                         >
                             &times;
                         </button>
@@ -304,61 +234,36 @@ export function AlphaTerminal() {
                 )}
             </div>
 
-            {/* Autonomous Execution Daemon Bar */}
+            {/* Autonomous Dislocation Scanner Banner */}
             <div className="glass-card rounded-2xl p-4 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-surface-900/90 via-surface-900/60 to-surface-900/90">
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl border ${
-                        autoTradeConfig?.enabled
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : 'bg-surface-800 text-surface-400 border-white/10'
-                    }`}>
-                        <Bot className={`w-5 h-5 ${autoTradeConfig?.enabled ? 'animate-bounce text-emerald-300' : ''}`} />
+                    <div className="p-2 rounded-xl border bg-primary-500/20 text-primary-300 border-primary-500/40">
+                        <Bot className="w-5 h-5 text-primary-300" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-white text-sm">Autonomous Execution Daemon</h4>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
-                                autoTradeConfig?.enabled
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                    : 'bg-surface-800 text-surface-400 border border-white/10'
-                            }`}>
-                                {autoTradeConfig?.enabled ? 'Active • Auto-Firing' : 'Standby / Manual'}
+                            <h4 className="font-bold text-white text-sm">Autonomous Market Dislocation Scanner</h4>
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                                Continuous 5-Min Polling
                             </span>
-                            {autoTradeConfig?.enabled && (
-                                <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary-500/20 text-primary-300">
-                                    {autoTradeConfig.dry_run ? 'Simulation Mode' : 'Live On-Chain'}
-                                </span>
-                            )}
+                            <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-white/5">
+                                Simulation & Calculation
+                            </span>
                         </div>
                         <p className="text-xs text-surface-300">
-                            Evaluates weather & parlay mathematical edges every 5 minutes. Auto-executes setups with EV &ge; {autoTradeConfig?.min_ev_pct ?? 25}% (capped at ${autoTradeConfig?.max_bet_usdc ?? 5}/trade).
+                            Continuously monitors weather matrices and multi-market correlated parlays for statistical mispricings with EV &ge; 25%.
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-end md:self-center shrink-0">
                     <button
-                        onClick={() => toggleAutoTrade.mutate({ dry_run: !autoTradeConfig?.dry_run })}
-                        disabled={toggleAutoTrade.isPending}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                            autoTradeConfig?.dry_run
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30'
-                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30'
-                        }`}
+                        onClick={handleRunFullScan}
+                        disabled={triggerScan.isPending}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-primary-600/30 hover:bg-primary-500/40 text-primary-200 border border-primary-500/40 transition-all flex items-center gap-1.5"
                     >
-                        {autoTradeConfig?.dry_run ? 'Dry-Run Mode' : 'Live Execution Mode'}
-                    </button>
-
-                    <button
-                        onClick={() => toggleAutoTrade.mutate({ enabled: !autoTradeConfig?.enabled })}
-                        disabled={toggleAutoTrade.isPending}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
-                            autoTradeConfig?.enabled
-                                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30'
-                        }`}
-                    >
-                        {autoTradeConfig?.enabled ? 'Pause Auto-Trader' : 'Activate Auto-Trader'}
+                        <RefreshCw className={`w-3 h-3 ${triggerScan.isPending ? 'animate-spin' : ''}`} />
+                        <span>{triggerScan.isPending ? 'Re-evaluating...' : 'Re-calculate Edges'}</span>
                     </button>
                 </div>
             </div>
@@ -425,7 +330,7 @@ export function AlphaTerminal() {
                     }`}
                 >
                     <Zap className="w-4 h-4 text-amber-400" />
-                    <span>Direct CLOB Fast-Trader</span>
+                    <span>CLOB Odds & Multiplier Calculator</span>
                 </button>
 
                 <button
@@ -437,7 +342,7 @@ export function AlphaTerminal() {
                     }`}
                 >
                     <ListOrdered className="w-4 h-4 text-blue-400" />
-                    <span>Open Orders</span>
+                    <span>Simulated Scenarios</span>
                     {openOrders && openOrders.length > 0 && (
                         <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-blue-500/20 text-blue-300 font-mono">
                             {openOrders.length}
@@ -584,7 +489,7 @@ export function AlphaTerminal() {
                 <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 flex items-center justify-between">
                         <div className="text-xs text-purple-200">
-                            <strong>Synthetic Parlay Combinations:</strong> Bundles mathematically correlated events to unlock synthetic asymmetric payout multipliers (4x - 8x). Verified with local AMD EPYC LLM reasoning to detect inverse or high-risk outcomes.
+                            <strong>Synthetic Parlay Combinations:</strong> Bundles mathematically correlated events to unlock synthetic asymmetric payout multipliers (4x - 8x). Verified with Wolf Logic AI reasoning to detect inverse or high-risk outcomes.
                         </div>
                     </div>
 
@@ -662,7 +567,7 @@ export function AlphaTerminal() {
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-1.5 text-purple-300 font-semibold">
                                                             <Cpu className="w-3.5 h-3.5" />
-                                                            <span>Local AMD EPYC LLM ({analysis.model || 'qwen2.5:3b'})</span>
+                                                            <span>Wolf Logic AI Engine ({analysis.model || 'qwen2.5:3b'})</span>
                                                         </div>
                                                         {analysis.verdict && (
                                                             <span
@@ -692,7 +597,7 @@ export function AlphaTerminal() {
                                                 className="px-3 py-2 rounded-xl bg-surface-800 hover:bg-surface-700 text-purple-300 font-semibold text-xs transition-all flex items-center gap-1.5 border border-purple-500/20 disabled:opacity-50"
                                             >
                                                 <Bot className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                                                <span>{isAnalyzing ? 'Analyzing on EPYC...' : 'Analyze with Qwen LLM'}</span>
+                                                <span>{isAnalyzing ? 'Analyzing with AI Engine...' : 'Analyze with Qwen LLM'}</span>
                                             </button>
 
                                             <button
@@ -701,7 +606,7 @@ export function AlphaTerminal() {
                                                 className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
                                             >
                                                 <Zap className="w-3.5 h-3.5 text-amber-300" />
-                                                <span>Place Parlay (${tradeBudget.toFixed(0)})</span>
+                                                <span>Simulate Parlay (${tradeBudget.toFixed(0)})</span>
                                             </button>
                                         </div>
                                     </div>
@@ -781,7 +686,7 @@ export function AlphaTerminal() {
                                                         disabled={executeOp.isPending}
                                                         className="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs transition-colors shadow-sm disabled:opacity-50"
                                                     >
-                                                        Execute
+                                                        Simulate
                                                     </button>
                                                 </td>
                                             </tr>
@@ -802,9 +707,9 @@ export function AlphaTerminal() {
                         <div className="flex items-center justify-between border-b border-white/10 pb-3">
                             <div className="flex items-center gap-2">
                                 <Zap className="w-5 h-5 text-amber-400" />
-                                <h3 className="font-bold text-white text-base">CLOB Fast Execution</h3>
+                                <h3 className="font-bold text-white text-base">CLOB Odds & Multiplier Calculator</h3>
                             </div>
-                            <span className="text-xs font-mono text-surface-400">Gasless EIP-712</span>
+                            <span className="text-xs font-mono text-surface-400">Pure Analytical Simulation</span>
                         </div>
 
                         <form onSubmit={handleQuickOrderSubmit} className="space-y-4">
@@ -974,8 +879,8 @@ export function AlphaTerminal() {
                                 <Zap className="w-4 h-4" />
                                 <span>
                                     {placeOrder.isPending
-                                        ? 'Transmitting to CLOB...'
-                                        : `${dryRun ? '[Paper]' : '[Live]'} Submit ${clobSide} Order`}
+                                        ? 'Calculating Returns...'
+                                        : `Calculate Potential Return & Multiplier`}
                                 </span>
                             </button>
                         </form>
