@@ -139,12 +139,17 @@ def _llm_text(response: Any) -> str:
 
     return str(content)
 
-tavily_tool = TavilySearchResults(
-    max_results=3,
-    search_depth="advanced",
-    include_answer=True,
-    include_raw_content=True
-)
+tavily_tool = None
+if os.getenv("TAVILY_API_KEY"):
+    try:
+        tavily_tool = TavilySearchResults(
+            max_results=3,
+            search_depth="advanced",
+            include_answer=True,
+            include_raw_content=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not initialize TavilySearchResults: {e}")
 
 
 # --- Statistics Calculation Tools ---
@@ -817,15 +822,16 @@ def generalist_expert(state: DebateState):
 
         # Step 2: Perform searches
         all_results = []
-        for q in queries:
-            try:
-                res = tavily_tool.invoke(q)
-                if isinstance(res, list):
-                     all_results.extend(res)
-                else:
-                     all_results.append(str(res))
-            except Exception as tool_err:
-                logger.error(f"Tavily search failed for query '{q}': {tool_err}")
+        if tavily_tool:
+            for q in queries:
+                try:
+                    res = tavily_tool.invoke(q)
+                    if isinstance(res, list):
+                        all_results.extend(res)
+                    else:
+                        all_results.append(str(res))
+                except Exception as tool_err:
+                    logger.error(f"Tavily search failed for query '{q}': {tool_err}")
 
         # Simple deduplication
         unique_results = list(set([str(r) for r in all_results]))
