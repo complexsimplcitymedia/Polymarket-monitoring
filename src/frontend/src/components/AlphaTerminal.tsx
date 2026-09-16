@@ -23,7 +23,6 @@ import {
     type ParlayOpportunity,
 } from '../hooks/useScanners'
 import {
-    useTradingStatus,
     useOpenOrders,
     usePlaceOrder,
     useExecuteOpportunity,
@@ -31,24 +30,20 @@ import {
     useCancelOrder,
     useCancelAllOrders,
     useOrderBook,
-    useAutoTradeStatus,
-    useToggleAutoTrade,
 } from '../hooks/useTrading'
 import { useMarkets } from '../hooks/useMarkets'
 import { WeatherIntelligence } from './WeatherIntelligence'
 
 export function AlphaTerminal() {
     const [activeTab, setActiveTab] = useState<'weather' | 'parlays' | 'pipeline' | 'clob' | 'orders'>('weather')
-    const [dryRun, setDryRun] = useState<boolean>(true)
     const [tradeBudget, setTradeBudget] = useState<number>(5.0)
     const [weatherSubTab, setWeatherSubTab] = useState<'matrix' | 'scanner'>('matrix')
 
     // Data Hooks
-    const { data: tradingStatus, isLoading: statusLoading } = useTradingStatus()
     const { data: weatherData, isLoading: weatherLoading, refetch: refetchWeather } = useWeatherOpportunities()
     const { data: parlayData, isLoading: parlayLoading, refetch: refetchParlays } = useParlayOpportunities()
     const { data: pipelineData, isLoading: pipelineLoading, refetch: refetchPipeline } = useOpportunities()
-    const { data: openOrders, isLoading: ordersLoading, refetch: refetchOrders } = useOpenOrders()
+    const { data: openOrders, isLoading: ordersLoading } = useOpenOrders()
     const { data: marketsData } = useMarkets()
 
     // Mutations
@@ -73,8 +68,6 @@ export function AlphaTerminal() {
     const [executionFeedback, setExecutionFeedback] = useState<string | null>(null)
 
     const { data: orderBook } = useOrderBook(clobTokenId || null)
-    const { data: autoTradeConfig } = useAutoTradeStatus()
-    const toggleAutoTrade = useToggleAutoTrade()
 
     const handleRunFullScan = async () => {
         try {
@@ -113,7 +106,7 @@ export function AlphaTerminal() {
         }
     }
 
-    const handleExecuteOpportunityClick = (opId: number, title: string, price?: number) => {
+    const handleExecuteOpportunityClick = (_opId: number, title: string, price?: number) => {
         const oddsPrice = price && price > 0 ? price : 0.5
         const mult = (1 / oddsPrice).toFixed(2)
         const gross = (tradeBudget * parseFloat(mult)).toFixed(2)

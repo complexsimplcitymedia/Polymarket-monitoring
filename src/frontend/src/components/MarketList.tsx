@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, TrendingUp, TrendingDown, Loader2, Sparkles, Filter } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Loader2, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useMarkets } from '../hooks/useMarkets'
 import { useMarketStore, Market } from '../stores/marketStore'
