@@ -194,7 +194,7 @@ Category: {parlay_data.get('category')}
 Synthetic Payout Multiplier: {parlay_data.get('payout_multiplier')}
 Independent Implied Probability: {parlay_data.get('combined_implied_prob')}%
 
-Provide a rigorous analysis covering:
+Provide a rigorous, concise analysis (under 300 words) covering:
 1. **Correlation & Interdependence**: Are these events positively or negatively correlated? If Leg 1 resolves YES, how does that shift the probability of Leg 2?
 2. **Decoupling Risks**: What specific scenarios cause Leg 1 to hit while Leg 2 fails?
 3. **True Joint Probability Estimate**: Give your quantitative estimate of the joint probability (0-100%).
@@ -213,7 +213,7 @@ Provide a rigorous analysis covering:
     import httpx
 
     # Sequential execution: deepseek-r1 first, then qwen2.5:7b (NOT simultaneously)
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=180.0) as client:
         # Pass 1: DeepSeek-R1
         try:
             ds_resp = await client.post(
@@ -224,7 +224,7 @@ Provide a rigorous analysis covering:
                     "stream": False,
                     "keep_alive": -1,
                     "options": {
-                        "num_predict": 2048,
+                        "num_predict": 800,
                         "temperature": 0.3,
                     },
                 }
@@ -251,7 +251,7 @@ Provide a rigorous analysis covering:
                     "stream": False,
                     "keep_alive": -1,
                     "options": {
-                        "num_predict": 2048,
+                        "num_predict": 800,
                         "temperature": 0.3,
                     },
                 }
