@@ -19,6 +19,18 @@ from src.backend.scanners.parlay import (
     discover_parlay_candidates,
     analyze_parlay_with_enterprise_agent,
 )
+from src.backend.scanners.mlb import (
+    get_mlb_momentum_board,
+    get_team_momentum_deep_dive as get_mlb_team_deep_dive,
+)
+from src.backend.scanners.nfl import (
+    get_nfl_momentum_board,
+    get_team_momentum_deep_dive as get_nfl_team_deep_dive,
+)
+from src.backend.scanners.nba import (
+    get_nba_momentum_board,
+    get_team_momentum_deep_dive as get_nba_team_deep_dive,
+)
 
 router = APIRouter(prefix="/api/scanners", tags=["Scanners"])
 
@@ -110,4 +122,79 @@ async def trigger_scan() -> Dict[str, Any]:
     from src.backend.tasks.opportunity_hunter import run_opportunity_scan
     results = await run_opportunity_scan()
     return {"status": "SUCCESS", "detected_count": len(results), "opportunities": results}
+
+
+@router.get("/mlb/board")
+async def get_mlb_board(season: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Get all 30 MLB teams ranked by recency momentum (rolling 3-5 game BA,
+    active streaks, run differential) vs. season standings.
+    Surfaces underdog audition surges and coasting favorite traps.
+    Defaults to the current calendar year's season.
+    """
+    try:
+        return await get_mlb_momentum_board(season=season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"MLB board calculation error: {str(e)}")
+
+
+@router.get("/mlb/team/{team_id}")
+async def get_mlb_team(team_id: int, season: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Deep-dive recency analysis for a specific MLB team, including game-by-game
+    hitting logs, rolling batting average curves, and pre-wire trading guidance.
+    Defaults to the current calendar year's season.
+    """
+    try:
+        return await get_mlb_team_deep_dive(team_id=team_id, season=season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"MLB team deep-dive error: {str(e)}")
+
+
+@router.get("/nfl/board")
+async def get_nfl_board() -> Dict[str, Any]:
+    """
+    Get all NFL teams ranked by recency momentum (last-3-game scoring
+    margin vs. season point differential and streak) vs. season standings.
+    Surfaces underdog surges and coasting favorite traps.
+    """
+    try:
+        return await get_nfl_momentum_board()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"NFL board calculation error: {str(e)}")
+
+
+@router.get("/nfl/team/{team_id}")
+async def get_nfl_team(team_id: int) -> Dict[str, Any]:
+    """
+    Deep-dive recency analysis for a specific NFL team (ESPN team id).
+    """
+    try:
+        return await get_nfl_team_deep_dive(team_id=team_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"NFL team deep-dive error: {str(e)}")
+
+
+@router.get("/nba/board")
+async def get_nba_board() -> Dict[str, Any]:
+    """
+    Get all NBA teams ranked by recency momentum (last-5-game scoring
+    margin vs. season point differential and streak) vs. season standings.
+    Surfaces underdog surges and coasting favorite traps.
+    """
+    try:
+        return await get_nba_momentum_board()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"NBA board calculation error: {str(e)}")
+
+
+@router.get("/nba/team/{team_id}")
+async def get_nba_team(team_id: int) -> Dict[str, Any]:
+    """
+    Deep-dive recency analysis for a specific NBA team (ESPN team id).
+    """
+    try:
+        return await get_nba_team_deep_dive(team_id=team_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"NBA team deep-dive error: {str(e)}")
 

@@ -1,305 +1,118 @@
 # Polymarket Intelligence
 
-Real-time market tracking dashboard for Polymarket with live price charts, news feeds, whale order tracking, and price movement analysis.
+Real-time Polymarket trading intelligence platform with sports momentum analysis, weather mispricing detection, whale tracking, and AI-powered market debate.
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat)
-![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langchain&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
+![CrewAI](https://img.shields.io/badge/CrewAI-1.15-FF6B6B?style=flat)
+![pgvector](https://img.shields.io/badge/pgvector-enabled-green?style=flat)
+
+## Architecture
+
+```
+Node 06 (16GB)                    Server 7 (8GB)
+─────────────────────             ────────────────────────
+CrewAI Pipeline                   PostgreSQL 17 + pgai
+  Recency Analyst                   sports_teams
+  Vector Librarian    ──embed──►    sports_recency_splits
+                                    pgvector embeddings
+Ollama                            
+  qwen3-embedding:4b ◄──pgai────   FastAPI Backend
+  deepseek-r1                       /api/scanners/*
+  qwen2.5:7b                      Caddy (TLS)
+```
+
+See [SERVERS.md](SERVERS.md) for full infrastructure details.
+
+## Sports Intelligence Pipeline
+
+The CrewAI pipeline (`polymarket-pipeline` repo) runs on Node 06 and ingests live data from ESPN and MLB Stats API across all three major sports:
+
+- **MLB** — 30 teams, rolling 3-game batting/run momentum vs season record
+- **NFL** — 32 teams, rolling 3-game scoring margin vs season point differential
+- **NBA** — 30 teams, rolling 5-game scoring margin vs season point differential
+
+### Regime Tags
+| Tag | Signal |
+|---|---|
+| `UNDERDOG SURGE 🔥` | Sub-.400 team outperforming season record recently |
+| `COASTING FAVORITE ⚠️` | High win-pct team underperforming recently |
+| `PEAK CONTENDER ⚡` | Top team playing at or above season form |
+| `COLD CELLAR ❄️` | Bottom team with no recency improvement |
+
+### Pipeline Flow
+1. Fetch standings + recency from ESPN/MLB APIs (concurrent, all 3 sports)
+2. Compute momentum scores for all 92 teams
+3. Upsert all team rows to PostgreSQL (deterministic)
+4. Flag discrepancy teams → CrewAI Analyst generates trading narratives
+5. Vector Librarian embeds narratives via `ai.ollama_embed()` → pgvector
+
+## Other Scanners
+
+### Weather Mispricing
+Compares NOAA/HRRR meteorological forecasts against Polymarket weather market prices. Surfaces temperature bracket mispricing and overcast/cloud cover edges.
+
+`GET /api/scanners/weather` — scan all weather markets  
+`GET /api/scanners/weather/matrix?city=sf` — deep-dive for any city
+
+### Parlay Engine
+Discovers correlated multi-market parlay opportunities and runs enterprise agent analysis on joint probability and causal correlation.
+
+`GET /api/scanners/parlays` — discover candidates  
+`POST /api/scanners/parlays/analyze` — agent analysis on a specific parlay
 
 ## Quick Start
 
 ### Prerequisites
+- Python 3.12+, Node.js 18+, [uv](https://github.com/astral-sh/uv)
+- PostgreSQL 17 with pgai + pgvector (Server 7)
+- Ollama running (Node 06 or local)
 
-- Python 3.12+
-- Node.js 18+
-- [uv](https://github.com/astral-sh/uv) package manager
-
-### Installation
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/luuisotorres/polymarket-intelligence.git
-   cd polymarket-intelligence
-   ```
-
-2. Set up environment variables
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-3. Start both servers
-   ```bash
-   ./scripts/start.sh
-   ```
-
-   Or start them separately:
-   ```bash
-   # Backend (Terminal 1)
-   ./scripts/start_backend.sh
-
-   # Frontend (Terminal 2)
-   ./scripts/start_frontend.sh
-   ```
-
-4. Open http://localhost:5173
-
-### Quick Start with Docker
-
-Alternatively, run the entire stack with Docker:
-
+### Environment
 ```bash
-# Build and start containers
-docker compose up --build
-
-# Or run in detached mode
-docker compose up -d --build
+cp .env.example .env
+# Required: POLYMARKET_API_KEY, POLYMARKET_SECRET, POLYMARKET_PASSPHRASE
+# Required: GEMINI_API_KEY, TAVILY_API_KEY
+# Required: DATABASE_URL (PostgreSQL), OLLAMA_BASE_URL
 ```
 
-Access the app at http://localhost:5173 (frontend) and http://localhost:8000 (backend API).
-
-## Features
-
-### Top 100 Markets Dashboard
-Browse the most active Polymarket markets sorted by 7-day trading volume. Each market displays current probability, 24h volume, and price change indicators.
-
-### Live Price Charts
-Interactive charts powered by the Polymarket CLOB API showing real-time price history with multiple timeframe options (24H, 7D, 1M, ALL).
-
-![Price Chart](assets/screenshots/price-movements.png)
-
-### Related News Feed
-Aggregated news articles from NewsAPI relevant to selected markets. Stay informed about events that may impact market outcomes.
-
-![News Feed](assets/screenshots/news-feed.png)
-
-### Whale Order Tracking
-Monitor large trades (orders above $100) in real-time. See bullish and bearish sentiment based on order direction with position sizes and timestamps.
-
-![Large Orders](assets/screenshots/large-orders.png)
-
-### Top Holders Analysis
-View the top 5 holders for each market with their position sizes, percentage ownership, and performance metrics including PnL and ROI.
-
-![Top Holders](assets/screenshots/top-holders.png)
-
-### Price Movement Analytics
-Comprehensive price statistics including:
-- 24h/7d price changes and percentages
-- High/low ranges for each period
-- Volume analysis
-- Bullish/Bearish trading signals based on momentum, trend, range position, and volume
-
-## Updates
-
-### February 4, 2026
-
-#### Whale Behavioral Tagging & Intelligence
-Introduced a sophisticated behavioral analysis system for whale traders. The system now automatically tags wallets based on historical performance and current balance tiers, providing immediate context on the expertise and capital behind every large order.
-
-- **Performance Tiers**: Professional classification (e.g., "Top Performer", "Massive Winner") based on aggregate P&L.
-- **Capitalization Tiers**: Real-time balance monitoring to identify "Whale" vs "Institutional" scale capital.
-- **Visual Sentiment**: Enhanced real-time BULLISH/BEARISH indicators for all whale movements.
-
-#### AI Debate Floor Refinements
-Optimized the multi-agent orchestration layer for the AI Debate Floor, resulting in more consistent reasoning and refined final verdicts. Added a new Agent to analyze Top Holders's positions and track record.
-
----
-
-### February 3, 2026
-
-#### User Analytics Dashboard
-Added a dedicated user analytics experience with wallet/username search, total P&L alignment, ROI, win rate, and top wins/losses.
-
-![User Analytics](assets/screenshots/Screenshot%202026-02-02%20at%2022.02.00.png)
-
----
-
-### February 1, 2026
-
-#### Time Decay & Resolution Analyst
-Implemented a new specialized agent for the AI Debate Floor: the **Time Decay & Resolution Analyst**. This agent focuses on the temporal dynamics of prediction markets, calculating time-to-resolution, theta decay factors, and urgency classifications to provide strategic timing recommendations.
-
----
-
-### January 29, 2026
-
-#### Docker Containerization
-The application is now fully containerized with Docker. Run the entire stack (FastAPI backend + React frontend with nginx) using a single `docker compose up --build` command. This simplifies deployment and ensures consistent environments across development and production.
-
----
-
-### January 25, 2026
-
-#### Search via Market News
-Users can now search for markets directly using the market slug or keywords to find relevant news and financial data.
-
-![Search Slug](assets/screenshots/search-slug.png)
-
-#### AI Debate Floor
-Introducing a multi-agent AI debate system where specialized agents analyze the market from different perspectives before reaching a final verdict.
-
-![AI Debate Floor](assets/screenshots/ai-debate-floor.png)
-
-**How it works:**
-
-```mermaid
-flowchart TD
-    Start([User Query]) --> Stats[Statistics Expert]
-    Stats --> Time[Time Decay Analyst]
-    Time --> Gen[Generalist Expert]
-    Gen --> Macro[Crypto/Macro Analyst]
-    Macro --> Devil[Devil's Advocate]
-    Devil --> Mod[Moderator]
-    Mod --> End([Final Verdict])
+### Start
+```bash
+./scripts/start.sh          # both backend + frontend
+./scripts/start_backend.sh  # backend only (port 8000)
+./scripts/start_frontend.sh # frontend only (port 5173)
 ```
-
-## Architecture
-
-```mermaid
-flowchart TD
-    A[React Frontend] --> B[FastAPI Backend]
-    B --> C[(SQLite Database)]
-    B --> D[Polymarket API]
-    B --> E[NewsAPI]
-    B --> F[Polymarket CLOB API]
-    G[Background Scheduler] --> B
-```
-
-| Component | Purpose |
-|-----------|---------|
-| **React Frontend** | Single-page dashboard with Tailwind CSS styling and Zustand state management |
-| **FastAPI Backend** | REST API serving market data, news, and analytics |
-| **SQLite Database** | Local persistence for market data and caching |
-| **Background Scheduler** | APScheduler for periodic market data updates |
-
-## Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEWS_API_KEY` | API key from [NewsAPI](https://newsapi.org) | Required |
-| `DATABASE_URL` | SQLite connection string | `sqlite+aiosqlite:///./polymarket.db` |
-| `CORS_ORIGINS` | Allowed frontend origins | `http://localhost:5173` |
-| `HOST` | Backend server host | `0.0.0.0` |
-| `PORT` | Backend server port | `8000` |
-| `DEBUG` | Enable debug mode | `true` |
-| `POLYMARKET_API_KEY` | Polymarket API Key | Required for trading/auth |
-| `POLYMARKET_SECRET` | Polymarket API Secret | Required for trading/auth |
-| `POLYMARKET_PASSPHRASE`| Polymarket API Passphrase | Required for trading/auth |
-| `GEMINI_API_KEY` | Google Gemini API Key | Required for AI Debate |
-| `TAVILY_API_KEY` | Tavily Search API Key | Required for AI Debate |
 
 ## API Reference
 
+### Sports Scanners
+| Endpoint | Description |
+|---|---|
+| `GET /api/scanners/mlb/board` | All 30 MLB teams by momentum |
+| `GET /api/scanners/mlb/team/{id}` | MLB team deep-dive |
+| `GET /api/scanners/nfl/board` | All 32 NFL teams by momentum |
+| `GET /api/scanners/nfl/team/{id}` | NFL team deep-dive |
+| `GET /api/scanners/nba/board` | All 30 NBA teams by momentum |
+| `GET /api/scanners/nba/team/{id}` | NBA team deep-dive |
+
 ### Markets
-
 | Endpoint | Description |
-|----------|-------------|
-| `GET /api/markets/top50` | Get top 100 markets by 7-day volume |
-| `GET /api/markets/{id}` | Get single market details |
-| `GET /api/markets/{id}/history` | Get price history with timeframe parameter |
-| `GET /api/markets/{id}/trades` | Get recent large trades (whale orders) |
-| `GET /api/markets/{id}/holders` | Get top holders with PnL and ROI |
-| `GET /api/markets/{id}/stats` | Get price statistics and trading signals |
-| `GET /api/markets/status` | Get data update status |
-
-### News
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/news/{market_id}` | Get news articles for a market |
-
-### Health
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/health` | Health check endpoint |
-| `GET /` | API info and documentation links |
-
-## Project Structure
-
-```
-Polymarket-News-Tracker/
-├── src/
-│   ├── backend/
-│   │   ├── main.py              # FastAPI application entry point
-│   │   ├── config.py            # Configuration from environment
-│   │   ├── database.py          # SQLite async database setup
-│   │   ├── models.py            # SQLAlchemy models
-│   │   ├── routes/
-│   │   │   ├── markets.py       # Market data endpoints
-│   │   │   └── news.py          # News aggregation endpoints
-│   │   ├── polymarket/          # Polymarket API client
-│   │   ├── news/                # NewsAPI aggregator
-│   │   └── tasks/               # Background scheduler tasks
-│   └── frontend/
-│       ├── src/
-│       │   ├── App.tsx          # Main application component
-│       │   ├── components/
-│       │   │   ├── MarketList.tsx
-│       │   │   ├── PriceChart.tsx
-│       │   │   ├── NewsFeed.tsx
-│       │   │   ├── WhaleList.tsx
-│       │   │   ├── TopHolders.tsx
-│       │   │   └── PriceMovement.tsx
-│       │   ├── hooks/           # React Query hooks
-│       │   └── stores/          # Zustand state stores
-│       └── package.json
-├── scripts/
-│   ├── start.sh                 # Start both servers
-│   ├── start_backend.sh         # Start backend only
-│   └── start_frontend.sh        # Start frontend only
-├── assets/screenshots/          # Application screenshots
-├── pyproject.toml               # Python dependencies
-└── .env.example                 # Environment template
-```
+|---|---|
+| `GET /api/markets/top50` | Top 100 markets by 7-day volume |
+| `GET /api/markets/{id}` | Single market details |
+| `GET /api/markets/{id}/history` | Price history |
+| `GET /api/markets/{id}/trades` | Whale orders |
+| `GET /api/markets/{id}/holders` | Top holders with PnL/ROI |
 
 ## Tech Stack
 
-### Backend
-- **Python 3.12** - Modern Python with async/await
-- **FastAPI** - High-performance async web framework
-- **SQLAlchemy 2.0** - Async ORM with SQLite
-- **APScheduler** - Background task scheduling
-- **httpx** - Async HTTP client
-- **py-clob-client** - Polymarket CLOB API client
-- **LangChain** - LLM Orchestration
-- **LangGraph** - Stateful Multi-Agent Workflows
-
-### Frontend
-- **React 18** - Component-based UI library
-- **Vite** - Fast development build tool
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Utility-first styling with glassmorphism
-- **React Query** - Server state management
-- **Zustand** - Client state management
-- **Lucide React** - Icon library
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-
-## Author
-[Luis Fernando Torres](https://github.com/luuisotorres)
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/luuisotorres/)
-[![Medium](https://img.shields.io/badge/Medium-12100E?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@luuisotorres)
-[![Kaggle](https://img.shields.io/badge/Kaggle-20BEFF?style=for-the-badge&logo=kaggle&logoColor=white)](https://www.kaggle.com/lusfernandotorres)
-[![Hugging Face](https://img.shields.io/badge/_Hugging_Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/luisotorres)
-
-## License
-
-MIT
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI, Python 3.12, asyncpg |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
+| Database | PostgreSQL 17, pgai, pgvector |
+| Pipeline | CrewAI 1.15, Ollama, qwen3-embedding:4b |
+| Infra | Tailscale mesh, Caddy, Docker, UpCloud VPS |
