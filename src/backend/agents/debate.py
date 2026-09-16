@@ -4,7 +4,10 @@ from typing import Annotated, List, TypedDict, Dict, Any, Optional
 import datetime
 import os
 import math
+import logging
 from langgraph.graph import StateGraph, END
+
+logger = logging.getLogger(__name__)
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 from langchain_anthropic import ChatAnthropic
