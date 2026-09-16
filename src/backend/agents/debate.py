@@ -72,16 +72,45 @@ def _build_llm():
         )
 
     if not chain:
-        raise RuntimeError(
-            "No LLM configured for the Debate Floor. Set ANTHROPIC_API_KEY "
-            "(preferred) or GEMINI_API_KEY in your .env."
+        # Fallback to local Ollama on node 06
+        try:
+            from langchain_community.chat_models import ChatOllama
+            from src.backend.config import settings
+            chain.append(
+                ChatOllama(
+                    base_url=settings.OLLAMA_BASE_URL,
+                    model=getattr(settings, "LOCAL_LLM_MODEL", "qwen2.5:7b"),
+                    temperature=0.3,
+                )
+            )
+            logger.info("Using local Ollama as fallback for Debate Floor.")
+        except Exception as e:
+            logger.warning(f"Could not initialize ChatOllama for Debate Floor: {e}")
+
+    if not chain:
+        logger.warning(
+            "No LLM configured for Debate Floor. Set ANTHROPIC_API_KEY, GEMINI_API_KEY, or ensure Ollama is reachable."
         )
+        return None
 
     primary, *fallbacks = chain
     return primary.with_fallbacks(fallbacks) if fallbacks else primary
 
 
 llm = _build_llm()
+
+
+def _invoke_llm(messages: Any) -> Any:
+    """Safely invoke the Debate LLM, returning a placeholder if offline."""
+    if llm is None:
+        from langchain_core.messages import AIMessage
+        return AIMessage(content="[Debate Floor Offline: No LLM configured. Set ANTHROPIC_API_KEY or GEMINI_API_KEY in .env]")
+    try:
+        return llm.invoke(messages)
+    except Exception as e:
+        logger.error(f"Debate LLM invocation error: {e}")
+        from langchain_core.messages import AIMessage
+        return AIMessage(content=f"[Debate Floor Error: {str(e)}]")
 
 
 def _llm_text(response: Any) -> str:
@@ -661,7 +690,7 @@ def statistics_expert(state: DebateState):
         """
         
         logger.info(f"Statistics Expert computed report, invoking LLM for synthesis...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         
         # Combine computed stats with LLM synthesis
         full_response = f"{stats_report}\n\n---\n\n### Expert Interpretation\n\n{_llm_text(response)}"
@@ -744,7 +773,7 @@ def top_traders_analyst(state: DebateState):
         Use bullet points and highlight the key traders by name.
         """
 
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         full_response = f"## Top Traders Snapshot\n\n{traders_report}\n\n---\n\n### Expert Interpretation\n\n{_llm_text(response)}"
 
         return {"messages": [HumanMessage(content=f"**Top Traders Analyst**: {full_response}", name="Top Traders Analyst")]}
@@ -776,7 +805,7 @@ def generalist_expert(state: DebateState):
         Output ONLY the 3 queries, one per line.
         """
         try:
-             queries_response = llm.invoke([HumanMessage(content=query_prompt)])
+             queries_response = _invoke_llm([HumanMessage(content=query_prompt)])
              queries = [q.strip() for q in _llm_text(queries_response).split('\n') if q.strip()][:3]
              logger.info(f"Generated search queries: {queries}")
         except Exception as e:
@@ -818,7 +847,7 @@ def generalist_expert(state: DebateState):
         Cite specific articles or events found (e.g. "According to reports on [Topic]...").
         """
         logger.info(f"Generalist Expert Prompt: {prompt[:100]}...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         return {"messages": [HumanMessage(content=f"**Generalist Expert**: {_llm_text(response)}", name="Generalist Expert")]}
     except Exception as e:
         logger.error(f"Generalist Expert failed: {e}")
@@ -849,7 +878,7 @@ def devils_advocate(state: DebateState):
         Identify risks, alternative interpretations, or missing data points. If everyone says YES, argue why NO might happen, and vice versa.
         """
         logger.info(f"Devil's Advocate Prompt: {prompt[:100]}...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         return {"messages": [HumanMessage(content=f"**Devil's Advocate**: {_llm_text(response)}", name="Devil's Advocate")]}
     except Exception as e:
         logger.error(f"Devil's Advocate failed: {e}")
@@ -870,7 +899,7 @@ def crypto_macro_analyst(state: DebateState):
         Does general market sentiment, crypto correlation, or macro events (Fed rates, elections, etc.) impact this?
         """
         logger.info(f"Crypto/Macro Analyst Prompt: {prompt[:100]}...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         return {"messages": [HumanMessage(content=f"**Crypto/Macro Analyst**: {_llm_text(response)}", name="Crypto/Macro Analyst")]}
     except Exception as e:
         logger.error(f"Crypto/Macro Analyst failed: {e}")
@@ -983,7 +1012,7 @@ Proceed with caution and rely on other signals.
         """
         
         logger.info(f"Time Decay Analyst computed report, invoking LLM for synthesis...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         
         full_response = f"{time_report}\n\n---\n\n### Expert Interpretation\n\n{_llm_text(response)}"
         
@@ -1022,7 +1051,7 @@ def moderator(state: DebateState):
         Format nicely with Markdown.
         """
         logger.info(f"Moderator Prompt: {prompt[:100]}...")
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = _invoke_llm([HumanMessage(content=prompt)])
         return {
             "messages": [HumanMessage(content=f"**Moderator**: {_llm_text(response)}", name="Moderator")],
             "verdict": _llm_text(response)

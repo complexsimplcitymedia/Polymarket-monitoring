@@ -185,3 +185,40 @@ class Opportunity(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+
+class HistoricalWeatherRecord(Base):
+    """Model for storing 10+ years of historical weather observations per city."""
+
+    __tablename__ = "weather_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    city_key: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    date_str: Mapped[str] = mapped_column(String(10), nullable=False, index=True)  # YYYY-MM-DD
+    month_day: Mapped[str] = mapped_column(String(5), nullable=False, index=True)  # MM-DD
+    temperature_max: Mapped[float] = mapped_column(Float, nullable=False)
+    temperature_min: Mapped[float] = mapped_column(Float, nullable=False)
+    precipitation: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_weather_city_mday", "city_key", "month_day"),
+        Index("idx_weather_city_date", "city_key", "date_str", unique=True),
+    )
+
+
+class WeatherAnomalyLog(Base):
+    """Model for tracking detected atmospheric anomalies and historical analog matches."""
+
+    __tablename__ = "weather_anomalies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    city_key: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    forecast_date: Mapped[str] = mapped_column(String(10), nullable=False)
+    forecast_mean: Mapped[float] = mapped_column(Float, nullable=False)
+    historical_mean: Mapped[float] = mapped_column(Float, nullable=False)
+    historical_std: Mapped[float] = mapped_column(Float, nullable=False)
+    z_score: Mapped[float] = mapped_column(Float, nullable=False)
+    regime: Mapped[str] = mapped_column(String(50), nullable=False)
+    matched_analogs_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
