@@ -10,7 +10,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from src.backend.scanners.weather import scan_weather_markets
+from src.backend.scanners.weather import (
+    scan_weather_markets,
+    get_tracked_cities,
+    fetch_city_weather_matrix,
+)
 from src.backend.scanners.parlay import (
     discover_parlay_candidates,
     analyze_parlay_with_enterprise_agent,
@@ -26,6 +30,32 @@ class ParlayAnalysisRequest(BaseModel):
     legs: List[Dict[str, Any]]
     combined_implied_prob: Optional[float] = 25.0
     payout_multiplier: Optional[str] = "4.0x"
+
+
+@router.get("/weather/cities")
+async def list_weather_cities() -> List[Dict[str, Any]]:
+    """
+    List top 25 pre-indexed Polymarket weather cities with station metadata.
+    """
+    try:
+        return get_tracked_cities()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch tracked cities: {str(e)}")
+
+
+@router.get("/weather/matrix")
+async def get_city_weather_matrix(
+    city: str = "sf",
+    target_date: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Deep-dive weather analysis for any city: 10-year historical climatology,
+    cloud cover & overcast patterns, NWP multi-model consensus, and 2-degree bracket odds.
+    """
+    try:
+        return await fetch_city_weather_matrix(city_query=city, target_date_str=target_date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Weather matrix error: {str(e)}")
 
 
 @router.get("/weather")

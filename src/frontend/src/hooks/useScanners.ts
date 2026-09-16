@@ -132,3 +132,110 @@ export function useAnalyzeParlay() {
         },
     })
 }
+
+export interface TrackedCity {
+    key: string
+    name: string
+    station: string
+    lat: number
+    lon: number
+    tz: string
+}
+
+export interface HourlyWeatherPoint {
+    time: string
+    temp_f: number | null
+    cloud_cover_pct: number
+    condition: string
+    solar_radiation_w_m2: number
+    wind_mph: number
+    precip_prob_pct: number
+}
+
+export interface TwoDegreeBracket {
+    bracket: string
+    low: number
+    high: number
+    probability: number
+    rank: number
+}
+
+export interface CityWeatherMatrix {
+    city: TrackedCity
+    target_date: string
+    consensus_peak_f: number
+    calibrated_std_f: number
+    ten_year_climatology: {
+        mean_high_f: number
+        std_dev_f: number
+        min_high_f: number
+        max_high_f: number
+        anomaly_z_score: number
+        anomaly_regime: string
+        historical_records: Array<{ year: number; date: string; high: number }>
+    }
+    cloud_and_overcast_matrix: {
+        mean_daylight_cloud_cover_pct: number
+        morning_cloud_cover_pct: number
+        afternoon_cloud_cover_pct: number
+        overcast_regime: string
+        insolation_impact: string
+        hourly_curve: HourlyWeatherPoint[]
+    }
+    multi_model_nwp: {
+        models: Record<string, number>
+        consensus_mean_f: number
+        model_spread_f: number
+        model_std_f: number
+    }
+    live_observation: {
+        station_id: string
+        temp_f: number | null
+        dew_f: number | null
+        humidity_pct: number | null
+        wind_mph: number | null
+        wind_dir: number | null
+        weather_text: string | null
+        nws_forecast_high: number | null
+        nws_forecast_discussion: string | null
+    }
+    polymarket_bracket_matrix: {
+        brackets: TwoDegreeBracket[]
+        primary_bracket: TwoDegreeBracket | null
+        hedge_bracket: TwoDegreeBracket | null
+        dutched_win_prob_pct: number
+        recommended_capital_split: string
+        trap_to_fade: {
+            bracket: string
+            probability: number
+            reason: string
+        } | null
+    }
+}
+
+export function useTrackedCities() {
+    return useQuery<TrackedCity[]>({
+        queryKey: ['scanners', 'weather', 'cities'],
+        queryFn: async () => {
+            const res = await axios.get<TrackedCity[]>('/api/scanners/weather/cities')
+            return res.data
+        },
+        staleTime: 1000 * 60 * 30, // 30 mins
+    })
+}
+
+export function useCityWeatherMatrix(city: string, targetDate?: string) {
+    return useQuery<CityWeatherMatrix>({
+        queryKey: ['scanners', 'weather', 'matrix', city, targetDate || 'today'],
+        queryFn: async () => {
+            const params = new URLSearchParams({ city })
+            if (targetDate) params.append('target_date', targetDate)
+            const res = await axios.get<CityWeatherMatrix>(`/api/scanners/weather/matrix?${params.toString()}`)
+            return res.data
+        },
+        staleTime: 1000 * 60 * 5, // 5 mins
+        refetchInterval: 1000 * 60 * 5,
+        enabled: Boolean(city),
+    })
+}
+

@@ -35,11 +35,13 @@ import {
     useToggleAutoTrade,
 } from '../hooks/useTrading'
 import { useMarkets } from '../hooks/useMarkets'
+import { WeatherIntelligence } from './WeatherIntelligence'
 
 export function AlphaTerminal() {
     const [activeTab, setActiveTab] = useState<'weather' | 'parlays' | 'pipeline' | 'clob' | 'orders'>('weather')
     const [dryRun, setDryRun] = useState<boolean>(true)
     const [tradeBudget, setTradeBudget] = useState<number>(5.0)
+    const [weatherSubTab, setWeatherSubTab] = useState<'matrix' | 'scanner'>('matrix')
 
     // Data Hooks
     const { data: tradingStatus, isLoading: statusLoading } = useTradingStatus()
@@ -446,95 +448,132 @@ export function AlphaTerminal() {
 
             {/* TAB CONTENT */}
 
-            {/* 1. WEATHER SCANNER */}
+            {/* 1. WEATHER INTELLIGENCE & SCANNER */}
             {activeTab === 'weather' && (
                 <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex items-center justify-between">
-                        <div className="text-xs text-cyan-200">
-                            <strong>NOAA High-Resolution Ensemble Engine:</strong> Quantifies probability density curves over bracket bounds and detects statistical underpricings where market odds diverge from physical meteorological forecasts.
-                        </div>
-                        <div className="text-[11px] font-mono text-cyan-400 font-semibold uppercase">
-                            Stations: NYC Central Park, Miami MIA, Chicago ORD, LAX
-                        </div>
+                    {/* Subtab Switcher */}
+                    <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+                        <button
+                            onClick={() => setWeatherSubTab('matrix')}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                                weatherSubTab === 'matrix'
+                                    ? 'bg-cyan-500/30 text-white border border-cyan-500/40 shadow-md'
+                                    : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                        >
+                            <CloudSun className="w-4 h-4 text-cyan-400" />
+                            <span>City Climatology & Overcast Matrix (Top 25)</span>
+                        </button>
+                        <button
+                            onClick={() => setWeatherSubTab('scanner')}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                                weatherSubTab === 'scanner'
+                                    ? 'bg-cyan-500/30 text-white border border-cyan-500/40 shadow-md'
+                                    : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                        >
+                            <Zap className="w-4 h-4 text-amber-400" />
+                            <span>Polymarket +EV Mispricings Scanner</span>
+                            {weatherData && weatherData.length > 0 && (
+                                <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
+                                    {weatherData.length}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
-                    {weatherLoading ? (
-                        <div className="p-12 text-center text-surface-400">Loading NOAA forecasts & CLOB prices...</div>
-                    ) : !weatherData || weatherData.length === 0 ? (
-                        <div className="p-12 text-center text-surface-400 glass-card rounded-2xl">
-                            No weather anomalies detected above threshold right now.
-                        </div>
+                    {weatherSubTab === 'matrix' ? (
+                        <WeatherIntelligence />
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {weatherData.map((op, idx) => (
-                                <div
-                                    key={idx}
-                                    className="glass-card rounded-2xl p-5 border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-4 shadow-lg group"
-                                >
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="px-2 py-0.5 text-xs font-bold rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                                                {op.city}
-                                            </span>
-                                            <span className="text-xs font-mono text-surface-400">
-                                                Peak: {op.forecast_high_f}°F
-                                            </span>
-                                        </div>
-
-                                        <h3 className="font-semibold text-white text-sm line-clamp-2 mb-3">
-                                            {op.title}
-                                        </h3>
-
-                                        <div className="p-3 rounded-xl bg-surface-900/70 border border-white/5 space-y-2 mb-4">
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-surface-400">Target Bracket:</span>
-                                                <span className="font-mono text-white font-semibold">{op.bracket}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-surface-400">NOAA Model Prob:</span>
-                                                <span className="font-mono text-cyan-300 font-bold">{op.true_probability.toFixed(1)}%</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-surface-400">Market Price:</span>
-                                                <span className="font-mono text-surface-200">{op.market_price.toFixed(1)}¢</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2 text-center">
-                                            <div className="p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30">
-                                                <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
-                                                    Calculated Edge
-                                                </div>
-                                                <div className="text-base font-bold font-mono text-emerald-300">
-                                                    +{op.edge.toFixed(1)}%
-                                                </div>
-                                            </div>
-                                            <div className="p-2 rounded-xl bg-primary-950/30 border border-primary-500/30">
-                                                <div className="text-[10px] uppercase tracking-wider text-primary-400 font-semibold">
-                                                    Expected Value
-                                                </div>
-                                                <div className="text-base font-bold font-mono text-primary-300">
-                                                    +{op.expected_value_pct.toFixed(0)}% EV
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-3">
-                                        <div className="text-[11px] text-surface-400 font-mono">
-                                            Kelly: {op.kelly_fraction_pct}%
-                                        </div>
-                                        <button
-                                            onClick={() => handleExecuteOpportunityClick(idx + 1000, op.title)}
-                                            disabled={executeOp.isPending}
-                                            className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-600 to-primary-600 hover:from-cyan-500 hover:to-primary-500 text-white font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-1.5"
-                                        >
-                                            <Zap className="w-3.5 h-3.5 text-amber-300" />
-                                            <span>Execute ${tradeBudget.toFixed(0)} Bet</span>
-                                        </button>
-                                    </div>
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex items-center justify-between">
+                                <div className="text-xs text-cyan-200">
+                                    <strong>NOAA High-Resolution Ensemble Engine:</strong> Quantifies probability density curves over bracket bounds and detects statistical underpricings where market odds diverge from physical meteorological forecasts.
                                 </div>
-                            ))}
+                                <div className="text-[11px] font-mono text-cyan-400 font-semibold uppercase">
+                                    Stations: NYC Central Park, Miami MIA, Chicago ORD, LAX
+                                </div>
+                            </div>
+
+                            {weatherLoading ? (
+                                <div className="p-12 text-center text-surface-400">Loading NOAA forecasts & CLOB prices...</div>
+                            ) : !weatherData || weatherData.length === 0 ? (
+                                <div className="p-12 text-center text-surface-400 glass-card rounded-2xl">
+                                    No weather anomalies detected above threshold right now.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {weatherData.map((op, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="glass-card rounded-2xl p-5 border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-4 shadow-lg group"
+                                        >
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="px-2 py-0.5 text-xs font-bold rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                                        {op.city}
+                                                    </span>
+                                                    <span className="text-xs font-mono text-surface-400">
+                                                        Peak: {op.forecast_high_f}°F
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="font-semibold text-white text-sm line-clamp-2 mb-3">
+                                                    {op.title}
+                                                </h3>
+
+                                                <div className="p-3 rounded-xl bg-surface-900/70 border border-white/5 space-y-2 mb-4">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-surface-400">Target Bracket:</span>
+                                                        <span className="font-mono text-white font-semibold">{op.bracket}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-surface-400">NOAA Model Prob:</span>
+                                                        <span className="font-mono text-cyan-300 font-bold">{op.true_probability.toFixed(1)}%</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-surface-400">Market Price:</span>
+                                                        <span className="font-mono text-surface-200">{op.market_price.toFixed(1)}¢</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 text-center">
+                                                    <div className="p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30">
+                                                        <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
+                                                            Calculated Edge
+                                                        </div>
+                                                        <div className="text-base font-bold font-mono text-emerald-300">
+                                                            +{op.edge.toFixed(1)}%
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-2 rounded-xl bg-primary-950/30 border border-primary-500/30">
+                                                        <div className="text-[10px] uppercase tracking-wider text-primary-400 font-semibold">
+                                                            Expected Value
+                                                        </div>
+                                                        <div className="text-base font-bold font-mono text-primary-300">
+                                                            +{op.expected_value_pct.toFixed(0)}% EV
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-3">
+                                                <div className="text-[11px] text-surface-400 font-mono">
+                                                    Kelly: {op.kelly_fraction_pct}%
+                                                </div>
+                                                <button
+                                                    onClick={() => handleExecuteOpportunityClick(idx + 1000, op.title)}
+                                                    disabled={executeOp.isPending}
+                                                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-600 to-primary-600 hover:from-cyan-500 hover:to-primary-500 text-white font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-1.5"
+                                                >
+                                                    <Zap className="w-3.5 h-3.5 text-amber-300" />
+                                                    <span>Execute ${tradeBudget.toFixed(0)} Bet</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

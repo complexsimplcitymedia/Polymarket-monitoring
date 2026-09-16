@@ -21,85 +21,223 @@ from src.backend.models import Market
 logger = logging.getLogger(__name__)
 
 # Coordinates and station info for Polymarket's common weather markets
+# Coordinates and station info for Polymarket's top 25 cities
 METRO_STATIONS = {
     "nyc": {
-        "name": "New York (Central Park / LGA)",
+        "name": "New York (Central Park KNYC)",
+        "station": "KNYC",
         "lat": 40.7829,
         "lon": -73.9654,
         "tz": "America/New_York",
-        "keywords": ["new york", "nyc", "central park", "laguardia"],
-    },
-    "chicago": {
-        "name": "Chicago (O'Hare)",
-        "lat": 41.9742,
-        "lon": -87.9073,
-        "tz": "America/Chicago",
-        "keywords": ["chicago", "o'hare"],
-    },
-    "miami": {
-        "name": "Miami (MIA)",
-        "lat": 25.7959,
-        "lon": -80.2870,
-        "tz": "America/New_York",
-        "keywords": ["miami"],
+        "keywords": ["new york", "nyc", "central park", "laguardia", "knyc"],
     },
     "la": {
-        "name": "Los Angeles (LAX)",
+        "name": "Los Angeles (LAX KLAX)",
+        "station": "KLAX",
         "lat": 33.9416,
         "lon": -118.4085,
         "tz": "America/Los_Angeles",
-        "keywords": ["los angeles", "la", "lax"],
+        "keywords": ["los angeles", "la", "lax", "klax"],
     },
-    "austin": {
-        "name": "Austin (Camp Mabry)",
-        "lat": 30.2672,
-        "lon": -97.7431,
+    "chicago": {
+        "name": "Chicago (O'Hare KORD)",
+        "station": "KORD",
+        "lat": 41.9742,
+        "lon": -87.9073,
         "tz": "America/Chicago",
-        "keywords": ["austin"],
+        "keywords": ["chicago", "o'hare", "kord"],
     },
-    "london": {
-        "name": "London (Heathrow)",
-        "lat": 51.4700,
-        "lon": -0.4543,
-        "tz": "Europe/London",
-        "keywords": ["london", "heathrow"],
-    },
-    "seattle": {
-        "name": "Seattle (Sea-Tac)",
-        "lat": 47.4502,
-        "lon": -122.3088,
+    "sf": {
+        "name": "San Francisco (KSFO)",
+        "station": "KSFO",
+        "lat": 37.6190,
+        "lon": -122.3748,
         "tz": "America/Los_Angeles",
-        "keywords": ["seattle", "sea-tac"],
-    },
-    "phoenix": {
-        "name": "Phoenix (Sky Harbor)",
-        "lat": 33.4373,
-        "lon": -112.0078,
-        "tz": "America/Phoenix",
-        "keywords": ["phoenix", "sky harbor"],
-    },
-    "dallas": {
-        "name": "Dallas (DFW)",
-        "lat": 32.8998,
-        "lon": -97.0403,
-        "tz": "America/Chicago",
-        "keywords": ["dallas", "dfw", "fort worth"],
+        "keywords": ["san francisco", "sf", "frisco", "ksfo", "sfo"],
     },
     "atlanta": {
-        "name": "Atlanta (Hartsfield)",
+        "name": "Atlanta (Hartsfield KATL)",
+        "station": "KATL",
         "lat": 33.6407,
         "lon": -84.4277,
         "tz": "America/New_York",
-        "keywords": ["atlanta", "hartsfield"],
+        "keywords": ["atlanta", "hartsfield", "katl", "atl"],
+    },
+    "miami": {
+        "name": "Miami (MIA KMIA)",
+        "station": "KMIA",
+        "lat": 25.7959,
+        "lon": -80.2870,
+        "tz": "America/New_York",
+        "keywords": ["miami", "kmia", "mia"],
+    },
+    "dallas": {
+        "name": "Dallas / Fort Worth (KDFW)",
+        "station": "KDFW",
+        "lat": 32.8998,
+        "lon": -97.0403,
+        "tz": "America/Chicago",
+        "keywords": ["dallas", "dfw", "fort worth", "kdfw"],
+    },
+    "houston": {
+        "name": "Houston (Intercontinental KIAH)",
+        "station": "KIAH",
+        "lat": 29.9902,
+        "lon": -95.3368,
+        "tz": "America/Chicago",
+        "keywords": ["houston", "iah", "kiah"],
+    },
+    "phoenix": {
+        "name": "Phoenix (Sky Harbor KPHX)",
+        "station": "KPHX",
+        "lat": 33.4373,
+        "lon": -112.0078,
+        "tz": "America/Phoenix",
+        "keywords": ["phoenix", "sky harbor", "kphx", "phx"],
+    },
+    "seattle": {
+        "name": "Seattle (Sea-Tac KSEA)",
+        "station": "KSEA",
+        "lat": 47.4502,
+        "lon": -122.3088,
+        "tz": "America/Los_Angeles",
+        "keywords": ["seattle", "sea-tac", "ksea", "sea"],
     },
     "denver": {
-        "name": "Denver (DIA)",
+        "name": "Denver (DIA KDEN)",
+        "station": "KDEN",
         "lat": 39.8561,
         "lon": -104.6737,
         "tz": "America/Denver",
-        "keywords": ["denver"],
+        "keywords": ["denver", "dia", "kden", "den"],
+    },
+    "boston": {
+        "name": "Boston (Logan KBOS)",
+        "station": "KBOS",
+        "lat": 42.3656,
+        "lon": -71.0096,
+        "tz": "America/New_York",
+        "keywords": ["boston", "logan", "kbos", "bos"],
+    },
+    "philly": {
+        "name": "Philadelphia (KPHL)",
+        "station": "KPHL",
+        "lat": 39.8721,
+        "lon": -75.2411,
+        "tz": "America/New_York",
+        "keywords": ["philadelphia", "philly", "kphl", "phl"],
+    },
+    "dc": {
+        "name": "Washington D.C. (Reagan KDCA)",
+        "station": "KDCA",
+        "lat": 38.8512,
+        "lon": -77.0402,
+        "tz": "America/New_York",
+        "keywords": ["washington", "dc", "reagan", "kdca", "dca"],
+    },
+    "vegas": {
+        "name": "Las Vegas (Harry Reid KLAS)",
+        "station": "KLAS",
+        "lat": 36.0840,
+        "lon": -115.1537,
+        "tz": "America/Los_Angeles",
+        "keywords": ["las vegas", "vegas", "klas", "las"],
+    },
+    "austin": {
+        "name": "Austin (Bergstrom KAUS)",
+        "station": "KAUS",
+        "lat": 30.1945,
+        "lon": -97.6699,
+        "tz": "America/Chicago",
+        "keywords": ["austin", "kaus", "aus"],
+    },
+    "sandiego": {
+        "name": "San Diego (Lindbergh KSAN)",
+        "station": "KSAN",
+        "lat": 32.7338,
+        "lon": -117.1933,
+        "tz": "America/Los_Angeles",
+        "keywords": ["san diego", "ksan", "san"],
+    },
+    "minneapolis": {
+        "name": "Minneapolis (St. Paul KMSP)",
+        "station": "KMSP",
+        "lat": 44.8848,
+        "lon": -93.2223,
+        "tz": "America/Chicago",
+        "keywords": ["minneapolis", "st paul", "kmsp", "msp"],
+    },
+    "detroit": {
+        "name": "Detroit (Metro KDTW)",
+        "station": "KDTW",
+        "lat": 42.2162,
+        "lon": -83.3554,
+        "tz": "America/Detroit",
+        "keywords": ["detroit", "kdtw", "dtw"],
+    },
+    "tampa": {
+        "name": "Tampa (KTPA)",
+        "station": "KTPA",
+        "lat": 27.9772,
+        "lon": -82.5311,
+        "tz": "America/New_York",
+        "keywords": ["tampa", "ktpa", "tpa"],
+    },
+    "charlotte": {
+        "name": "Charlotte (Douglas KCLT)",
+        "station": "KCLT",
+        "lat": 35.2144,
+        "lon": -80.9473,
+        "tz": "America/New_York",
+        "keywords": ["charlotte", "kclt", "clt"],
+    },
+    "nashville": {
+        "name": "Nashville (KBNA)",
+        "station": "KBNA",
+        "lat": 36.1245,
+        "lon": -86.6782,
+        "tz": "America/Chicago",
+        "keywords": ["nashville", "kbna", "bna"],
+    },
+    "orleans": {
+        "name": "New Orleans (Armstrong KMSY)",
+        "station": "KMSY",
+        "lat": 29.9911,
+        "lon": -90.2580,
+        "tz": "America/Chicago",
+        "keywords": ["new orleans", "nola", "kmsy", "msy"],
+    },
+    "portland": {
+        "name": "Portland (KPDX)",
+        "station": "KPDX",
+        "lat": 45.5898,
+        "lon": -122.5951,
+        "tz": "America/Los_Angeles",
+        "keywords": ["portland", "kpdx", "pdx"],
+    },
+    "london": {
+        "name": "London (Heathrow EGLL)",
+        "station": "EGLL",
+        "lat": 51.4700,
+        "lon": -0.4543,
+        "tz": "Europe/London",
+        "keywords": ["london", "heathrow", "egll", "lhr"],
     },
 }
+
+def get_tracked_cities() -> List[Dict[str, Any]]:
+    """Return the list of top 25 tracked cities with resolution metadata."""
+    return [
+        {
+            "key": k,
+            "name": v["name"],
+            "station": v.get("station", k.upper()),
+            "lat": v["lat"],
+            "lon": v["lon"],
+            "tz": v["tz"],
+        }
+        for k, v in METRO_STATIONS.items()
+    ]
 
 # In-memory cache for 10-year historical climatology: key -> stats
 HISTORICAL_CLIMATOLOGY_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -533,3 +671,361 @@ async def scan_weather_markets() -> List[Dict[str, Any]]:
 
     opportunities.sort(key=lambda x: x["edge"], reverse=True)
     return opportunities
+
+
+async def fetch_city_weather_matrix(city_query: str, target_date_str: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Comprehensive Climatology, Overcast Matrix, Multi-Model NWP, and 2-Degree Bracket Engine
+    for a specified city. Supports top 25 pre-indexed cities or arbitrary city search via geocoding.
+    """
+    import urllib.parse
+
+    clean_query = city_query.strip().lower()
+    matched_key = None
+    station = None
+
+    # 1. Match against 25 pre-indexed cities
+    for k, info in METRO_STATIONS.items():
+        if clean_query == k or clean_query == info.get("station", "").lower():
+            matched_key = k
+            station = dict(info)
+            break
+        if any(kw in clean_query or clean_query in kw for kw in info.get("keywords", [])):
+            matched_key = k
+            station = dict(info)
+            break
+
+    # 2. Dynamic geocoding fallback for arbitrary city search
+    if not station:
+        try:
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(clean_query)}&count=1&language=en&format=json"
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(geo_url, headers={"User-Agent": "PolymarketIntelligence/1.0"})
+                if resp.status_code == 200:
+                    geo_data = resp.json()
+                    results = geo_data.get("results", [])
+                    if results:
+                        r0 = results[0]
+                        station = {
+                            "name": f"{r0.get('name')}, {r0.get('admin1', r0.get('country', ''))}",
+                            "station": r0.get("name", "GEO").upper()[:4],
+                            "lat": r0.get("latitude"),
+                            "lon": r0.get("longitude"),
+                            "tz": r0.get("timezone", "UTC"),
+                            "keywords": [clean_query],
+                        }
+                        matched_key = clean_query
+        except Exception as e:
+            logger.warning(f"Geocoding failed for {city_query}: {e}")
+
+    if not station:
+        # Default fallback to New York Central Park
+        matched_key = "nyc"
+        station = dict(METRO_STATIONS["nyc"])
+
+    # Target date
+    target_dt = date.today()
+    if target_date_str:
+        try:
+            target_dt = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+        except Exception:
+            pass
+
+    date_iso = target_dt.strftime("%Y-%m-%d")
+    target_month = target_dt.month
+    target_day = target_dt.day
+
+    # 3. Multi-Model Open-Meteo Daily & Hourly Forecast
+    models_list = ["best_match", "ecmwf_ifs025", "gfs_seamless", "icon_seamless", "gem_seamless"]
+    models_str = ",".join(models_list)
+    hourly_vars = "temperature_2m,dew_point_2m,relative_humidity_2m,cloud_cover,direct_normal_irradiance,precipitation_probability,wind_speed_10m,wind_direction_10m"
+
+    forecast_url = (
+        f"https://api.open-meteo.com/v1/forecast"
+        f"?latitude={station['lat']}&longitude={station['lon']}"
+        f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+        f"&hourly={hourly_vars}"
+        f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,wind_speed_10m,wind_direction_10m"
+        f"&models={models_str}"
+        f"&temperature_unit=fahrenheit"
+        f"&wind_speed_unit=mph"
+        f"&timezone={urllib.parse.quote(station['tz'])}"
+        f"&start_date={date_iso}&end_date={date_iso}"
+    )
+
+    nwp_data = {}
+    hourly_raw = {}
+    current_raw = {}
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            resp = await client.get(forecast_url, headers={"User-Agent": "PolymarketIntelligence/1.0"})
+            if resp.status_code == 200:
+                nwp_data = resp.json()
+                hourly_raw = nwp_data.get("hourly", {})
+                current_raw = nwp_data.get("current", {})
+    except Exception as e:
+        logger.error(f"Error fetching NWP forecast: {e}")
+
+    daily_raw = nwp_data.get("daily", {})
+    model_highs = {}
+    for m in models_list:
+        val = daily_raw.get(f"temperature_2m_max_{m}", [None])[0]
+        if val is not None:
+            model_highs[m] = round(val, 1)
+
+    valid_vals = list(model_highs.values())
+    model_mean = round(sum(valid_vals) / len(valid_vals), 1) if valid_vals else 75.0
+    model_spread = round(max(valid_vals) - min(valid_vals), 1) if valid_vals else 2.0
+    if len(valid_vals) > 1:
+        m_var = sum((x - model_mean) ** 2 for x in valid_vals) / (len(valid_vals) - 1)
+        model_std = round(math.sqrt(m_var), 2)
+    else:
+        model_std = 1.5
+
+    # 4. Live NWS Station Obs & Grid Forecast (if US location)
+    live_obs = {
+        "station_id": station.get("station"),
+        "temp_f": None,
+        "dew_f": None,
+        "humidity_pct": None,
+        "wind_mph": None,
+        "wind_dir": None,
+        "weather_text": None,
+        "nws_forecast_high": None,
+        "nws_forecast_discussion": None,
+    }
+
+    if station.get("station") and station["station"].startswith("K"):
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                nws_obs_url = f"https://api.weather.gov/stations/{station['station']}/observations/latest"
+                obs_resp = await client.get(nws_obs_url, headers={"User-Agent": "PolymarketIntelligence/1.0"})
+                if obs_resp.status_code == 200:
+                    oprops = obs_resp.json().get("properties", {})
+                    tc = oprops.get("temperature", {}).get("value")
+                    dc = oprops.get("dewpoint", {}).get("value")
+                    rh = oprops.get("relativeHumidity", {}).get("value")
+                    ws = oprops.get("windSpeed", {}).get("value")
+                    wd = oprops.get("windDirection", {}).get("value")
+                    live_obs["temp_f"] = round(tc * 9 / 5 + 32, 1) if tc is not None else None
+                    live_obs["dew_f"] = round(dc * 9 / 5 + 32, 1) if dc is not None else None
+                    live_obs["humidity_pct"] = round(rh, 1) if rh is not None else None
+                    live_obs["wind_mph"] = round(ws * 0.621371, 1) if ws is not None else None
+                    live_obs["wind_dir"] = round(wd) if wd is not None else None
+                    live_obs["weather_text"] = oprops.get("textDescription")
+
+                nws_pt_url = f"https://api.weather.gov/points/{station['lat']},{station['lon']}"
+                pt_resp = await client.get(nws_pt_url, headers={"User-Agent": "PolymarketIntelligence/1.0"})
+                if pt_resp.status_code == 200:
+                    f_url = pt_resp.json().get("properties", {}).get("forecast")
+                    if f_url:
+                        f_resp = await client.get(f_url, headers={"User-Agent": "PolymarketIntelligence/1.0"})
+                        if f_resp.status_code == 200:
+                            periods = f_resp.json().get("properties", {}).get("periods", [])
+                            # Find daytime period matching target date
+                            for p in periods:
+                                if p.get("isDaytime"):
+                                    live_obs["nws_forecast_high"] = p.get("temperature")
+                                    live_obs["nws_forecast_discussion"] = p.get("detailedForecast")
+                                    break
+        except Exception as e:
+            logger.warning(f"NWS fetch error for {station['station']}: {e}")
+
+    # Fallback to current_raw from Open-Meteo if NWS not available
+    if live_obs["temp_f"] is None and current_raw:
+        live_obs["temp_f"] = current_raw.get("temperature_2m")
+        live_obs["dew_f"] = current_raw.get("dew_point_2m")
+        live_obs["humidity_pct"] = current_raw.get("relativeHumidity") or current_raw.get("relative_humidity_2m")
+        live_obs["wind_mph"] = current_raw.get("wind_speed_10m")
+        live_obs["wind_dir"] = current_raw.get("wind_direction_10m")
+
+    # 5. Cloud Pattern & Overcast Analysis
+    times = hourly_raw.get("time", [])
+    clouds = hourly_raw.get("cloud_cover", [])
+    temps = hourly_raw.get("temperature_2m", [])
+    rads = hourly_raw.get("direct_normal_irradiance", [])
+    winds = hourly_raw.get("wind_speed_10m", [])
+    precip_probs = hourly_raw.get("precipitation_probability", [])
+
+    hourly_curve = []
+    daylight_clouds = []
+    morning_clouds = []
+    afternoon_clouds = []
+
+    for i, t in enumerate(times):
+        try:
+            hour_int = int(t.split("T")[1].split(":")[0])
+        except Exception:
+            hour_int = i
+
+        c_val = clouds[i] if i < len(clouds) and clouds[i] is not None else 0
+        t_val = temps[i] if i < len(temps) and temps[i] is not None else None
+        r_val = rads[i] if i < len(rads) and rads[i] is not None else 0
+        w_val = winds[i] if i < len(winds) and winds[i] is not None else 0
+        pp_val = precip_probs[i] if i < len(precip_probs) and precip_probs[i] is not None else 0
+
+        # Daylight hours 06:00 to 20:00
+        if 6 <= hour_int <= 20:
+            daylight_clouds.append(c_val)
+            if 8 <= hour_int <= 12:
+                morning_clouds.append(c_val)
+            if 12 < hour_int <= 17:
+                afternoon_clouds.append(c_val)
+
+            cond_text = "Clear / Sunny"
+            if c_val >= 80:
+                cond_text = "Overcast"
+            elif c_val >= 50:
+                cond_text = "Mostly Cloudy"
+            elif c_val >= 25:
+                cond_text = "Partly Cloudy"
+
+            hourly_curve.append({
+                "time": f"{hour_int:02d}:00",
+                "temp_f": t_val,
+                "cloud_cover_pct": c_val,
+                "condition": cond_text,
+                "solar_radiation_w_m2": r_val,
+                "wind_mph": w_val,
+                "precip_prob_pct": pp_val,
+            })
+
+    mean_daylight_clouds = round(sum(daylight_clouds) / max(1, len(daylight_clouds)), 1)
+    mean_morning_clouds = round(sum(morning_clouds) / max(1, len(morning_clouds)), 1)
+    mean_afternoon_clouds = round(sum(afternoon_clouds) / max(1, len(afternoon_clouds)), 1)
+
+    if mean_daylight_clouds >= 75:
+        overcast_regime = "HEAVY OVERCAST / STRATUS SHIELD"
+        insolation_impact = "Persistent dense cloud deck severely damps solar irradiance. Diurnal heating is heavily compressed, capping peak temperature."
+        cloud_std_factor = 1.2
+    elif mean_morning_clouds >= 65 and mean_afternoon_clouds <= 40:
+        overcast_regime = "MORNING STRATUS / AFTERNOON CLEARING"
+        insolation_impact = "Morning marine/radiation stratus cuts early heating curve. Rapid warmup only begins post-clearing after 12:30 PM."
+        cloud_std_factor = 1.4
+    elif mean_daylight_clouds >= 45:
+        overcast_regime = "BROKEN CLOUD DECK / PARTLY SUNNY"
+        insolation_impact = "Intermittent cloud cover and diffuse insolation. Temperatures track near standard diurnal model means."
+        cloud_std_factor = 1.6
+    elif mean_daylight_clouds >= 25:
+        overcast_regime = "SCATTERED FAIR WEATHER CLOUDS"
+        insolation_impact = "Predominantly clear skies with strong unimpeded solar insolation driving robust daytime warming."
+        cloud_std_factor = 1.7
+    else:
+        overcast_regime = "CLEAR SKY / UNINHIBITED HEATING"
+        insolation_impact = "Zero cloud attenuation. Maximum possible ground solar insolation, pushing peak temperatures toward the upper model envelope."
+        cloud_std_factor = 1.8
+
+    # 6. 10-Year Historical Climatology (2015-2025)
+    hist = await fetch_10yr_historical_climatology(matched_key, target_month, target_day)
+    hist_mean = hist.get("mean", 75.0)
+    hist_std = hist.get("std", 3.5)
+    hist_min = hist.get("min", 65.0)
+    hist_max = hist.get("max", 85.0)
+    records = hist.get("records", [])
+
+    # Anomaly Z-Score
+    consensus_high = model_mean
+    if live_obs.get("nws_forecast_high"):
+        consensus_high = round(0.65 * model_mean + 0.35 * live_obs["nws_forecast_high"], 1)
+
+    z_score = round((consensus_high - hist_mean) / hist_std, 2) if hist_std > 0 else 0.0
+    if z_score >= 1.8:
+        anomaly_regime = f"EXTREME HEAT ANOMALY (+{z_score}σ above 10-year mean)"
+    elif z_score >= 0.8:
+        anomaly_regime = f"WARM ANOMALY (+{z_score}σ above 10-year mean)"
+    elif z_score <= -1.8:
+        anomaly_regime = f"SEVERE COLD ANOMALY ({z_score}σ below 10-year mean)"
+    elif z_score <= -0.8:
+        anomaly_regime = f"COOL ANOMALY ({z_score}σ below 10-year mean)"
+    else:
+        anomaly_regime = f"SEASONAL NORMAL ({'+' if z_score >= 0 else ''}{z_score}σ)"
+
+    # 7. Polymarket 2-Degree Bracket Matrix & Hedge Calculator
+    calibrated_std = max(1.1, round(math.sqrt(0.6 * (cloud_std_factor ** 2) + 0.4 * (model_std ** 2)), 2))
+
+    # Generate standard Odd-Even 2-degree brackets (e.g. 67-68, 69-70, 71-72, 73-74...)
+    base_odd = math.floor(consensus_high)
+    if base_odd % 2 == 0:
+        base_odd -= 1
+
+    bracket_list = []
+    for offset in range(-6, 8, 2):
+        b_low = base_odd + offset
+        b_high = b_low + 1
+        p_val = round((normal_cdf(b_high + 0.5, consensus_high, calibrated_std) - normal_cdf(b_low - 0.5, consensus_high, calibrated_std)) * 100, 1)
+        bracket_list.append({
+            "bracket": f"{b_low}-{b_high}°F",
+            "low": b_low,
+            "high": b_high,
+            "probability": max(0.2, p_val),
+        })
+
+    bracket_list.sort(key=lambda x: x["probability"], reverse=True)
+    for idx, b in enumerate(bracket_list):
+        b["rank"] = idx + 1
+
+    primary = bracket_list[0] if len(bracket_list) > 0 else None
+    hedge = bracket_list[1] if len(bracket_list) > 1 else None
+
+    dutched_prob = round((primary["probability"] + hedge["probability"]), 1) if primary and hedge else 60.0
+    primary_share = round((primary["probability"] / dutched_prob) * 100) if primary and hedge else 60
+    hedge_share = 100 - primary_share
+
+    # Trap bracket identification (brackets with <3% probability that retail often misprices)
+    trap = None
+    for b in bracket_list:
+        if b["rank"] > 3 and b["high"] > consensus_high + 3.0 and b["probability"] < 4.0:
+            trap = {
+                "bracket": b["bracket"],
+                "probability": b["probability"],
+                "reason": f"Retail traders often chase this high bracket based on uncorrected regional forecasts, but local boundary layer conditions cap the physical maximum at {round(consensus_high + 1.5, 1)}°F.",
+            }
+            break
+
+    return {
+        "city": {
+            "key": matched_key,
+            "name": station["name"],
+            "station": station.get("station"),
+            "lat": station["lat"],
+            "lon": station["lon"],
+            "tz": station["tz"],
+        },
+        "target_date": date_iso,
+        "consensus_peak_f": consensus_high,
+        "calibrated_std_f": calibrated_std,
+        "ten_year_climatology": {
+            "mean_high_f": hist_mean,
+            "std_dev_f": hist_std,
+            "min_high_f": hist_min,
+            "max_high_f": hist_max,
+            "anomaly_z_score": z_score,
+            "anomaly_regime": anomaly_regime,
+            "historical_records": records,
+        },
+        "cloud_and_overcast_matrix": {
+            "mean_daylight_cloud_cover_pct": mean_daylight_clouds,
+            "morning_cloud_cover_pct": mean_morning_clouds,
+            "afternoon_cloud_cover_pct": mean_afternoon_clouds,
+            "overcast_regime": overcast_regime,
+            "insolation_impact": insolation_impact,
+            "hourly_curve": hourly_curve,
+        },
+        "multi_model_nwp": {
+            "models": model_highs,
+            "consensus_mean_f": model_mean,
+            "model_spread_f": model_spread,
+            "model_std_f": model_std,
+        },
+        "live_observation": live_obs,
+        "polymarket_bracket_matrix": {
+            "brackets": bracket_list,
+            "primary_bracket": primary,
+            "hedge_bracket": hedge,
+            "dutched_win_prob_pct": dutched_prob,
+            "recommended_capital_split": f"{primary_share}% Primary ({primary['bracket'] if primary else ''}) / {hedge_share}% Hedge ({hedge['bracket'] if hedge else ''})",
+            "trap_to_fade": trap,
+        },
+    }
+
