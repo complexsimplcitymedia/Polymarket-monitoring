@@ -21,7 +21,6 @@ services:
     image: polymarket-frontend:latest
     restart: unless-stopped
     ports:
-      - "80:80"
       - "5173:80"
     networks:
       - pnet
