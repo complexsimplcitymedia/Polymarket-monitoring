@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run", "--profile", "default"],
+      "env": {
+        "DOCKER_HOST": "tcp://100.110.82.53:2375",
+        "HOME": "/home/wolf",
+        "PATH": "/usr/local/bin:/usr/bin:/bin"
+      }
+    },
+    "vscode-mcp": {
+      "command": "vscode-mcp-server",
+      "args": [],
+      "env": {
+        "PATH": "/home/wolf/.nvm/versions/node/v26.8.2/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}

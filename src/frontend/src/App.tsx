@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-    TrendingUp,
     Newspaper,
     BarChart3,
     Wallet,
@@ -9,12 +8,7 @@ import {
     User,
     MessageSquare,
     Flame,
-    Radio,
-    Cpu,
-    Globe,
-    ShieldCheck,
     Zap,
-    ChevronRight,
 } from 'lucide-react'
 import { MarketList } from './components/MarketList'
 import PriceChart from './components/PriceChart'
@@ -29,10 +23,14 @@ import UserDashboard from './components/UserDashboard'
 import { AlphaTerminal } from './components/AlphaTerminal'
 import { useMarketStore } from './stores/marketStore'
 import { useMarkets } from './hooks/useMarkets'
+import { AuthGate } from './components/AuthGate'
+import { useAuthStore } from './stores/authStore'
+import { LogOut } from 'lucide-react'
 
 function App() {
     const { selectedMarket, setSelectedMarket } = useMarketStore()
     const { data: marketsData } = useMarkets()
+    const { logout, user } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats' | 'debate'>('news')
     const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user'>('alpha')
 
@@ -40,59 +38,46 @@ function App() {
     const topMarkets = marketsData?.markets.slice(0, 6) || []
 
     return (
-        <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col selection:bg-primary-500 selection:text-white relative overflow-x-hidden">
-            {/* Ambient Background Glow Highlights */}
-            <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-            <div className="fixed top-1/3 right-10 w-[450px] h-[450px] bg-rose-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-            <div className="fixed bottom-10 left-10 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[130px] pointer-events-none -z-10" />
+        <AuthGate>
+            <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col selection:bg-primary-500 selection:text-white relative overflow-x-hidden">
+                {/* Ambient Background Glow Highlights */}
+                <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+                <div className="fixed top-1/3 right-10 w-[450px] h-[450px] bg-rose-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+                <div className="fixed bottom-10 left-10 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[130px] pointer-events-none -z-10" />
 
             {/* Header */}
             <header className="glass border-b border-white/10 sticky top-0 z-50 backdrop-blur-xl bg-[#030816]/90 shadow-2xl">
                 <div className="max-w-[1920px] mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
-                    {/* Brand & Wolf Logic Logo */}
+                    {/* Brand & CSMP Logo */}
                     <div className="flex items-center gap-3.5 w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center gap-3.5">
-                            {/* Wolf Logic Logo with Cyberpunk Pulse Ring */}
-                            <div className="relative group cursor-pointer">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-red-600 via-primary-500 to-amber-500 rounded-full blur-sm opacity-60 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
+                            {/* Real CSMP Logo */}
+                            <div className="relative group cursor-pointer bg-white/95 px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
                                 <img
-                                    src="/wolf-logic-logo.png"
-                                    alt="Wolf Logic - Wolf of All Streets"
-                                    className="relative w-11 h-11 rounded-full object-cover ring-2 ring-white/30 shadow-2xl group-hover:scale-105 transition-transform"
+                                    src="/logo.png"
+                                    alt="Complex Simplicity Media"
+                                    className="h-7 w-auto object-contain"
                                 />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-xl font-black font-display tracking-tight text-white flex items-center gap-1.5">
-                                        <span className="text-gradient-gold font-black tracking-wide drop-shadow-sm">
-                                            WOLF LOGIC
-                                        </span>
-                                        <span className="text-slate-600 font-light text-base">/</span>
                                         <span className="text-gradient font-black">
-                                            POLYMARKET
+                                            MARKET INTELLIGENCE
                                         </span>
                                     </h1>
-                                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-full bg-primary-500/15 text-primary-300 border border-primary-500/30 shadow-sm">
-                                        <Globe className="w-2.5 h-2.5" />
-                                        polymarket.complexsimplicity-ai.com
-                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 font-mono">
-                                    <span className="text-amber-400 font-bold text-[11px] tracking-wider uppercase">
-                                        Wolf of All Streets
-                                    </span>
-                                    <span className="text-slate-600">•</span>
                                     <span className="flex items-center gap-1.5 text-[11px]">
                                         <span className="relative flex h-2 w-2">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                         </span>
-                                        <span className="text-emerald-400 font-semibold">CLOB LIVE</span>
+                                        <span className="text-emerald-400 font-semibold">LIVE INSTITUTIONAL FEED</span>
                                     </span>
-                                    <span className="text-slate-600 hidden lg:inline">•</span>
-                                    <span className="hidden lg:flex items-center gap-1 text-[11px] text-cyan-300 font-medium">
-                                        <Cpu className="w-3 h-3 text-cyan-400" />
-                                        AI REASONING ENGINE ACTIVE
+                                    <span className="text-slate-600 hidden sm:inline">•</span>
+                                    <span className="hidden sm:inline-flex text-[11px] text-cyan-300 font-medium">
+                                        ANALYTICAL ENGINE
                                     </span>
                                 </div>
                             </div>
@@ -158,6 +143,23 @@ function App() {
                             >
                                 <User className="w-3.5 h-3.5 text-indigo-400" />
                                 Whale Lab
+                            </button>
+                        </div>
+
+                        {/* Operator / Lock Button */}
+                        <div className="flex items-center gap-2">
+                            {user && (
+                                <span className="hidden xl:inline text-[11px] font-mono text-slate-400 bg-surface-900/80 px-2.5 py-1 rounded-lg border border-white/5">
+                                    {user.name}
+                                </span>
+                            )}
+                            <button
+                                onClick={logout}
+                                title="Lock Terminal / Sign Out"
+                                className="px-3 py-1.5 rounded-xl bg-surface-900/90 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-mono"
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Lock</span>
                             </button>
                         </div>
 
@@ -358,18 +360,18 @@ function App() {
                 {activeView === 'user' && <UserDashboard />}
             </main>
 
-            {/* Polished Footer with Wolf of All Streets Branding */}
+            {/* Polished Footer with CSMP Branding */}
             <footer className="glass border-t border-white/10 mt-12 py-6 px-4 bg-[#030816]/95">
                 <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
                     <div className="flex items-center gap-3">
                         <img
-                            src="/wolf-logic-logo.png"
-                            alt="Wolf Logic"
-                            className="w-6 h-6 rounded-full object-cover ring-1 ring-white/20"
+                            src="/logo.png"
+                            alt="Complex Simplicity Media"
+                            className="w-6 h-6 object-contain"
                         />
-                        <span className="text-slate-200 font-bold">WOLF LOGIC</span>
+                        <span className="text-slate-200 font-bold">COMPLEX SIMPLICITY MEDIA</span>
                         <span className="text-slate-600">•</span>
-                        <span>Wolf of All Streets Alpha Terminal</span>
+                        <span>Institutional Market Intelligence</span>
                         <span className="text-slate-600">•</span>
                         <span>Direct CLOB Gateway</span>
                     </div>
@@ -385,6 +387,7 @@ function App() {
                 </div>
             </footer>
         </div>
+        </AuthGate>
     )
 }
 

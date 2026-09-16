@@ -13,6 +13,7 @@ export interface Market {
     end_date?: string | null
     image_url?: string | null
     clob_token_ids?: string[] | null
+    category?: string | null
     last_updated?: string | null
 }
 

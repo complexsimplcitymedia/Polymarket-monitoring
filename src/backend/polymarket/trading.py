@@ -123,7 +123,7 @@ class PolymarketTradingService:
                     "status": "READY",
                     "mode": "POLYMARKET_US_ED25519",
                     "message": "Polymarket US authenticated via Ed25519 key.",
-                    "wallet_address": f"Polymarket-US ({settings.POLYMARKET_API_KEY[:8]}...)",
+                    "wallet_address": f"Polymarket-US ({(settings.POLYMARKET_KEY_ID or settings.POLYMARKET_API_KEY)[:8]}...)",
                     "funder_address": None,
                     "signature_type": "Ed25519",
                     "balance_usdc": round(total_buying_power, 2),
