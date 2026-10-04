@@ -1,0 +1,9 @@
+{
+  "name": "polymarket-ingest",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Real-time layer: live scores and prices from ESPN and Polymarket into SQL (game_snapshots)",
+  "scripts": { "start": "node index.js", "test": "node --test" },
+  "dependencies": { "pg": "^8.13.0" }
+}

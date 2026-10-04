@@ -1,0 +1,13 @@
+[Unit]
+Description=Persistent SSH tunnel: Polymarket backend (VM4:8001) -> VM3:8003
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wolf
+ExecStart=/usr/bin/ssh -N -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 100.110.82.97:8003:100.110.82.54:8001 wolf-vm-03
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

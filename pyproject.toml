@@ -26,6 +26,7 @@ dependencies = [
     "pgvector>=0.5.0",
     "cryptography>=50.0.1",
     "polymarket-us>=0.1.2",
+    "hostinger-mail-api>=1.18.0",
 ]
 
 [project.optional-dependencies]

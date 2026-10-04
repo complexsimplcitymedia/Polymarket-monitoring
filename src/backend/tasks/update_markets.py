@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.backend.config import settings
 from src.backend.database import async_session_factory
 from src.backend.models import AppState, Market, PriceHistory
 from src.backend.polymarket.client import polymarket_client
@@ -27,7 +28,7 @@ async def update_top_markets() -> None:
 
     try:
         # Fetch top 100 markets from Polymarket
-        markets_data = await polymarket_client.get_top_markets_by_volume(limit=100)
+        markets_data = await polymarket_client.get_top_markets_by_volume(limit=100, sports_only=settings.SPORTS_ONLY)
 
         if not markets_data:
             logger.warning("No markets fetched from Polymarket API")
@@ -174,14 +175,33 @@ def get_scheduler():
         replace_existing=True,
     )
 
-    # Opportunity hunter scan every 5 minutes
-    from src.backend.tasks.opportunity_hunter import run_opportunity_scan
-    scheduler.add_job(
-        run_opportunity_scan,
-        trigger=IntervalTrigger(minutes=5),
-        id="opportunity_hunter",
-        name="Scan for weather and parlay mispricings",
-        replace_existing=True,
-    )
+    # Sports core: live college football scan every minute
+    from src.backend.config import settings as _settings
+
+    if _settings.ENABLE_CFB_SCANNER:
+        from src.backend.sports.alerts import scan_and_alert
+
+        scheduler.add_job(
+            scan_and_alert,
+            trigger=IntervalTrigger(seconds=60),
+            id="cfb_live_scan",
+            name="Scan live college football and NFL games and raise alerts",
+            replace_existing=True,
+            max_instances=1,
+        )
+
+    # Extras: weather and parlay opportunity hunter every 5 minutes (off unless extras enabled)
+    from src.backend.config import settings
+
+    if settings.ENABLE_EXTRAS:
+        from src.backend.extras.opportunity_hunter import run_opportunity_scan
+
+        scheduler.add_job(
+            run_opportunity_scan,
+            trigger=IntervalTrigger(minutes=5),
+            id="opportunity_hunter",
+            name="Scan for weather and parlay mispricings",
+            replace_existing=True,
+        )
 
     return scheduler

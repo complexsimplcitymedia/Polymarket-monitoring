@@ -33,6 +33,7 @@ import {
 } from '../hooks/useTrading'
 import { useMarkets } from '../hooks/useMarkets'
 import { WeatherIntelligence } from './WeatherIntelligence'
+import { marketSides } from '../utils/sides'
 
 export function AlphaTerminal() {
     const [activeTab, setActiveTab] = useState<'weather' | 'parlays' | 'pipeline' | 'clob' | 'orders'>('weather')
@@ -727,7 +728,7 @@ export function AlphaTerminal() {
                                     <option value="">-- Choose active market --</option>
                                     {marketsData?.markets.slice(0, 50).map((m) => (
                                         <option key={m.id} value={m.id}>
-                                            {m.title} ({m.yes_percentage.toFixed(0)}% Yes)
+                                            {m.title} ({marketSides(m).a.label} {marketSides(m).a.pct.toFixed(0)}%)
                                         </option>
                                     ))}
                                 </select>

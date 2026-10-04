@@ -83,13 +83,11 @@ export const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <div className="max-w-md w-full glass border border-white/10 rounded-3xl p-8 backdrop-blur-2xl bg-[#030816]/90 shadow-2xl relative z-10">
                 {/* Logo & Branding */}
                 <div className="flex flex-col items-center text-center mb-8">
-                    <div className="bg-white/95 px-4 py-2 rounded-2xl shadow-xl border border-white/30 mb-5 max-w-[240px]">
-                        <img
-                            src="/logo.png"
-                            alt="Complex Simplicity Media"
-                            className="h-10 w-auto object-contain"
-                        />
-                    </div>
+                    <img
+                        src="/wolf-emblem.png"
+                        alt="Wolf Logic"
+                        className="h-24 w-24 rounded-full object-cover shadow-xl ring-1 ring-white/20 mb-5"
+                    />
 
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold mb-3">
                         <Lock className="w-3 h-3" />

@@ -1,16 +1,105 @@
 services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: polymarket-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: poly_db
+      POSTGRES_USER: wolf
+      POSTGRES_PASSWORD: wolfpoly2026
+    ports:
+      - "127.0.0.1:5433:5432"
+      - "100.110.82.54:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wolf -d poly_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: 
       context: .
       dockerfile: Dockerfile.backend
     image: polymarket-backend:latest
+    container_name: polymarket-backend
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - .env
-    volumes:
-      - polymarket_db:/app?polymarket.db
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8001:8000"
+      - "100.110.82.54:8001:8000"
+    networks:
+      - pnet
+
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingest
+    image: polymarket-ingest:latest
+    container_name: polymarket-ingest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    env_file:
+      - .env
+    networks:
+      - pnet
+
+  # Tailscale sidecar: the ticks worker shares this container's network, so only its traffic exits through London.
+  ts-london:
+    image: tailscale/tailscale:latest
+    container_name: polymarket-ts-london
+    hostname: polymarket-ticks
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_EXTRA_ARGS: --exit-node=100.110.82.10 --exit-node-allow-lan-access
+      TS_ACCEPT_DNS: "false"
+      TS_USERSPACE: "false"
+    volumes:
+      - ts_london_state:/var/lib/tailscale
+    networks:
+      - pnet
+
+  ticks:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingest
+    image: polymarket-ingest:latest
+    container_name: polymarket-ticks
+    command: ["node", "ticks.js"]
+    restart: unless-stopped
+    network_mode: "service:ts-london"
+    depends_on:
+      - ts-london
+      - backend
+    env_file:
+      - .env
+
+  probe:
+    image: polymarket-backend:latest
+    container_name: polymarket-probe
+    command: ["/app/.venv/bin/python", "-m", "src.backend.probe"]
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    env_file:
+      - .env
     networks:
       - pnet
 
@@ -19,14 +108,19 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     image: polymarket-frontend:latest
+    container_name: polymarket-frontend
     restart: unless-stopped
+    depends_on:
+      - backend
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:80"
+      - "100.110.82.54:5173:80"
     networks:
       - pnet
 
 volumes:
-  polymarket_db:
+  postgres_data:
+  ts_london_state:
 
 networks:
   pnet:

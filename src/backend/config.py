@@ -41,6 +41,38 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://100.110.82.53:11434"
     LOCAL_LLM_MODEL: str = "qwen2.5:7b"
 
+    # Keep only the sports leagues we trade (MLB, college football, NFL, tennis, basketball) in the market list
+    SPORTS_ONLY: bool = True
+
+    # Alerts: a team that is AHEAD on the scoreboard but still priced to lose
+    ALERTS_ENABLED: bool = True
+    ALERT_MAX_PRICE: float = 0.50  # alert while a leading team is priced below this
+    ALERT_MIN_LEAD: int = 5  # and is ahead by at least this many points (5 is the floor)
+    ALERT_TRAIL_MAX_DEFICIT: int = 8  # college football: a team down by this many or fewer (one score)...
+    ALERT_TRAIL_MAX_PRICE: float = 0.30  # ...and priced below this (30%) is alert-worthy
+    ALERT_COOLDOWN_MINUTES: int = 30  # at most one alert per game and team in this window
+    # Email delivery. Preferred: a Hostinger Agentic Mail API token (sends from its mailbox).
+    # Fallback: SMTP. Leave both unset, or ALERT_EMAIL_TO empty, to keep alerts in the app only.
+    HOSTINGER_MAIL_API_TOKEN: str = ""
+    HOSTINGER_MAILBOX_ID: str = ""  # optional; the token's first mailbox is used when empty
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_STARTTLS: bool = True
+    ALERT_EMAIL_TO: str = ""
+
+    # The AI inside the app (NanoGPT, OpenAI-compatible). Leave the key empty to keep the AI off.
+    NANOGPT_API_KEY: str = ""
+    NANOGPT_BASE_URL: str = "https://nano-gpt.com/api/v1"
+
+    # Poll live college football every minute and flag price-vs-game-state gaps
+    ENABLE_CFB_SCANNER: bool = True
+
+    # Keep weather, parlay, debate and trading routes mounted (isolated in src/backend/extras)
+    ENABLE_EXTRAS: bool = True
+
     # Automated Opportunity Execution Daemon
     AUTO_TRADE_ENABLED: bool = False
     AUTO_TRADE_MAX_BET: float = 5.0

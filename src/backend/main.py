@@ -23,7 +23,7 @@ from src.backend.config import settings
 from src.backend.database import close_db, init_db
 from src.backend.polymarket.client import polymarket_client
 from src.backend.news.aggregator import news_aggregator
-from src.backend.routes import markets, news, debate, users, trading, scanners
+from src.backend.routes import account, ai, alerts, football, markets, mlb, news, scores, sports, tiers, users, webhook
 from src.backend.tasks.update_markets import get_scheduler, update_top_markets
 
 # Configure logging
@@ -90,10 +90,22 @@ app.add_middleware(
 # Include routers
 app.include_router(markets.router)
 app.include_router(news.router)
-app.include_router(debate.router)
 app.include_router(users.router)
-app.include_router(trading.router)
-app.include_router(scanners.router)
+app.include_router(sports.router)
+app.include_router(account.router)
+app.include_router(mlb.router)
+app.include_router(football.router)
+app.include_router(tiers.router)
+app.include_router(scores.router)
+app.include_router(alerts.router)
+app.include_router(ai.router)
+app.include_router(webhook.router)
+
+# Extras (weather, parlays, debate floor, trading) are kept but isolated from the sports core.
+if settings.ENABLE_EXTRAS:
+    from src.backend.extras import include_extras
+
+    include_extras(app)
 
 
 @app.get("/api/health")

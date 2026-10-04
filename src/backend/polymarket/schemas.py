@@ -4,9 +4,10 @@ Pydantic schemas for Polymarket API responses.
 Defines data models for markets and related data structures.
 """
 
+import json
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class TokenInfo(BaseModel):
@@ -70,6 +71,13 @@ class MarketResponse(BaseModel):
         extra = "ignore"
 
 
+class OutcomeOut(BaseModel):
+    """One side of a market and its price as a percentage."""
+
+    name: str
+    price: float
+
+
 class MarketOut(BaseModel):
     """Output model for a market sent to the frontend."""
 
@@ -86,6 +94,18 @@ class MarketOut(BaseModel):
     image_url: str | None = None
     clob_token_ids: str | None = None
     last_updated: datetime | None = None
+    outcomes_json: str | None = Field(default=None, exclude=True)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def outcomes(self) -> list[OutcomeOut]:
+        """Each side with its name and percentage; empty when the names were not stored."""
+        if not self.outcomes_json:
+            return []
+        try:
+            return [OutcomeOut(**o) for o in json.loads(self.outcomes_json)]
+        except (ValueError, TypeError):
+            return []
 
     class Config:
         """Pydantic config."""

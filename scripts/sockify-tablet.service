@@ -1,0 +1,12 @@
+[Unit]
+Description=websockify bridge: tablet VNC 5900 -> tailnet :6900
+After=network-online.target tailscaled.service
+
+[Service]
+User=wolf
+ExecStart=/home/wolf/miniconda3/bin/websockify 100.110.82.54:6900 100.110.82.108:5900
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

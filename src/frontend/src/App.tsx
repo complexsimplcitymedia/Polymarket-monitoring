@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
     Newspaper,
     BarChart3,
@@ -11,7 +11,10 @@ import {
     Zap,
 } from 'lucide-react'
 import { MarketList } from './components/MarketList'
+// import FloatingWatch, { WatchReopenButton } from './components/FloatingWatch'
 import PriceChart from './components/PriceChart'
+import MatchupPanel from './components/MatchupPanel'
+import HeadToHead from './components/HeadToHead'
 import { NewsFeed } from './components/NewsFeed'
 import { WhaleList } from './components/WhaleList'
 import { TopHolders } from './components/TopHolders'
@@ -20,25 +23,38 @@ import { TimeframeSelector } from './components/TimeframeSelector'
 import { SearchBar } from './components/SearchBar'
 import DebateFloor from './components/DebateFloor'
 import UserDashboard from './components/UserDashboard'
+import AccountPage from './components/AccountPage'
+import AiPanel from './components/AiPanel'
+import LiveStream from './components/LiveStream'
+import TeamsPage from './components/TeamsPage'
 import { AlphaTerminal } from './components/AlphaTerminal'
 import { useMarketStore } from './stores/marketStore'
 import { useMarkets } from './hooks/useMarkets'
 import { AuthGate } from './components/AuthGate'
 import { useAuthStore } from './stores/authStore'
-import { LogOut } from 'lucide-react'
+import { marketSides } from './utils/sides'
+import { ExternalLink, LogOut, Bot } from 'lucide-react'
 
 function App() {
     const { selectedMarket, setSelectedMarket } = useMarketStore()
     const { data: marketsData } = useMarkets()
     const { logout, user } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats' | 'debate'>('news')
-    const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user'>('alpha')
+    const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user' | 'account' | 'teams' | 'ai' | 'live'>('account')
+
+    useEffect(() => {
+        const list = marketsData?.markets
+        if (selectedMarket || !list?.length) return
+        const live = list.find((m) => m.yes_percentage > 3 && m.yes_percentage < 97)
+        setSelectedMarket(live ?? list[0])
+    }, [marketsData, selectedMarket, setSelectedMarket])
 
     const totalVolume = marketsData?.markets.reduce((acc, m) => acc + (m.volume_24h || 0), 0) || 0
     const topMarkets = marketsData?.markets.slice(0, 6) || []
 
     return (
         <AuthGate>
+            <LiveStream />
             <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col selection:bg-primary-500 selection:text-white relative overflow-x-hidden">
                 {/* Ambient Background Glow Highlights */}
                 <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
@@ -51,14 +67,20 @@ function App() {
                     {/* Brand & CSMP Logo */}
                     <div className="flex items-center gap-3.5 w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center gap-3.5">
-                            {/* Real CSMP Logo */}
-                            <div className="relative group cursor-pointer bg-white/95 px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
+                            {/* Wolf Logic emblem: opens Polymarket US in a new tab */}
+                            <a
+                                href="https://polymarket.us"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open Polymarket US in a new tab"
+                                className="shrink-0"
+                            >
                                 <img
-                                    src="/logo.png"
-                                    alt="Complex Simplicity Media"
-                                    className="h-7 w-auto object-contain"
+                                    src="/wolf-emblem.png"
+                                    alt="Wolf Logic: open Polymarket US"
+                                    className="h-11 w-11 rounded-full object-cover shadow-lg ring-1 ring-white/20 hover:ring-primary-400/60 transition"
                                 />
-                            </div>
+                            </a>
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-xl font-black font-display tracking-tight text-white flex items-center gap-1.5">
@@ -112,15 +134,37 @@ function App() {
                         {/* View Switcher Pill */}
                         <div className="flex items-center gap-1 bg-surface-900/95 border border-white/15 rounded-xl p-1 shadow-2xl">
                             <button
-                                onClick={() => setActiveView('alpha')}
+                                onClick={() => setActiveView('account')}
                                 className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'alpha'
-                                        ? 'bg-gradient-to-r from-amber-500/40 via-primary-500/40 to-accent-500/40 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
+                                    activeView === 'account'
+                                        ? 'bg-emerald-500/30 text-white border border-emerald-500/50 shadow-lg shadow-emerald-500/15'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
-                                <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                Alpha Terminal
+                                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                                My Account
+                            </button>
+                            <button
+                                onClick={() => setActiveView('teams')}
+                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeView === 'teams'
+                                        ? 'bg-amber-500/30 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                                Teams
+                            </button>
+                            <button
+                                onClick={() => setActiveView('ai')}
+                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeView === 'ai'
+                                        ? 'bg-primary-500/30 text-white border border-primary-500/50 shadow-lg shadow-primary-500/15'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Bot className="w-3.5 h-3.5 text-primary-400" />
+                                AI
                             </button>
                             <button
                                 onClick={() => setActiveView('markets')}
@@ -144,10 +188,33 @@ function App() {
                                 <User className="w-3.5 h-3.5 text-indigo-400" />
                                 Whale Lab
                             </button>
+                            <button
+                                onClick={() => setActiveView('alpha')}
+                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeView === 'alpha'
+                                        ? 'bg-gradient-to-r from-amber-500/40 via-primary-500/40 to-accent-500/40 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                Extras (Weather)
+                            </button>
                         </div>
+
+                        <a
+                            href="https://polymarket.us"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open Polymarket in a new tab"
+                            className="px-3 py-1.5 rounded-xl bg-surface-900/90 hover:bg-primary-500/20 text-slate-300 hover:text-white border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-bold font-display"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5 text-primary-400" />
+                            Polymarket
+                        </a>
 
                         {/* Operator / Lock Button */}
                         <div className="flex items-center gap-2">
+                            {/* WatchReopenButton removed */}
                             {user && (
                                 <span className="hidden xl:inline text-[11px] font-mono text-slate-400 bg-surface-900/80 px-2.5 py-1 rounded-lg border border-white/5">
                                     {user.name}
@@ -192,7 +259,12 @@ function App() {
                                         {m.title}
                                     </span>
                                     <span className="px-1.5 py-0.2 rounded font-bold text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                        {m.yes_percentage.toFixed(0)}% Yes
+                                        {(() => {
+                                            const sd = marketSides(m)
+                                            return sd.named
+                                                ? `${(sd.a.pct >= sd.b.pct ? sd.a : sd.b).label} ${Math.max(sd.a.pct, sd.b.pct).toFixed(0)}%`
+                                                : `${sd.a.pct.toFixed(0)}% Yes`
+                                        })()}
                                     </span>
                                 </button>
                             ))}
@@ -211,7 +283,7 @@ function App() {
                                 <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/10">
                                     <div className="flex items-center gap-2">
                                         <BarChart3 className="w-5 h-5 text-primary-400" />
-                                        <h2 className="font-bold font-display text-white text-base">Top 100 Markets</h2>
+                                        <h2 className="font-bold font-display text-white text-base">Top 100 Sports Markets</h2>
                                     </div>
                                     <span className="text-[11px] font-mono text-slate-400 px-2 py-0.5 rounded-md bg-surface-900 border border-white/5">
                                         By 7D Volume
@@ -230,9 +302,6 @@ function App() {
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-white/10 relative z-10">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider rounded bg-primary-500/20 text-primary-300 border border-primary-500/40">
-                                                ACTIVE CLOB ORDERBOOK
-                                            </span>
                                             {selectedMarket?.category && (
                                                 <span className="px-2.5 py-0.5 text-[10px] font-semibold rounded bg-surface-800 text-slate-300 border border-white/5">
                                                     {selectedMarket.category}
@@ -244,29 +313,8 @@ function App() {
                                         </h2>
 
                                         {selectedMarket && (
-                                            <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-slate-300 mt-2.5">
-                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-900/80 border border-white/10 shadow-sm">
-                                                    <span className="text-slate-400">YES ODDS:</span>
-                                                    <span className="text-emerald-400 font-bold text-sm">
-                                                        {selectedMarket.yes_percentage.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-900/80 border border-white/10 shadow-sm">
-                                                    <span className="text-slate-400">NO ODDS:</span>
-                                                    <span className="text-rose-400 font-bold text-sm">
-                                                        {(100 - selectedMarket.yes_percentage).toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-900/80 border border-white/10 shadow-sm">
-                                                    <span className="text-slate-400">24H VOLUME:</span>
-                                                    <span className="text-white font-bold">
-                                                        {new Intl.NumberFormat('en-US', {
-                                                            style: 'currency',
-                                                            currency: 'USD',
-                                                            maximumFractionDigits: 0,
-                                                        }).format(selectedMarket.volume_24h)}
-                                                    </span>
-                                                </div>
+                                            <div className="mt-3">
+                                                <HeadToHead market={selectedMarket} />
                                             </div>
                                         )}
                                     </div>
@@ -278,6 +326,8 @@ function App() {
 
                                 <PriceChart />
                             </section>
+
+                            <MatchupPanel market={selectedMarket} />
 
                             {/* Deep Analysis & News Tabbed Section */}
                             <section className="glass-card rounded-2xl p-4 lg:p-6 border border-white/10 shadow-2xl">
@@ -358,6 +408,9 @@ function App() {
                 {activeView === 'alpha' && <AlphaTerminal />}
 
                 {activeView === 'user' && <UserDashboard />}
+                {activeView === 'account' && <AccountPage />}
+                {activeView === 'teams' && <TeamsPage />}
+                {activeView === 'ai' && <AiPanel />}
             </main>
 
             {/* Polished Footer with CSMP Branding */}
@@ -365,9 +418,9 @@ function App() {
                 <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
                     <div className="flex items-center gap-3">
                         <img
-                            src="/logo.png"
-                            alt="Complex Simplicity Media"
-                            className="w-6 h-6 object-contain"
+                            src="/wolf-emblem.png"
+                            alt="Wolf Logic"
+                            className="w-6 h-6 rounded-full object-cover"
                         />
                         <span className="text-slate-200 font-bold">COMPLEX SIMPLICITY MEDIA</span>
                         <span className="text-slate-600">•</span>

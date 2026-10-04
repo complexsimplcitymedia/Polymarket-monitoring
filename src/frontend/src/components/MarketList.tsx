@@ -1,8 +1,21 @@
 import { useMemo, useState } from 'react'
-import { Search, TrendingUp, TrendingDown, Loader2, Sparkles } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Loader2, Sparkles, Monitor } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useMarkets } from '../hooks/useMarkets'
 import { useMarketStore, Market } from '../stores/marketStore'
+import { marketSides } from '../utils/sides'
+
+const STREAM_URL = 'https://wolf-logic-tablet.barred-interval.ts.net:5800/vnc.html?autoconnect=true&show_dot=true&host=wolf-logic-tablet.barred-interval.ts.net&port=5900'
+
+function isBaseball(m: Market): boolean {
+    const t = (m.title + ' ' + (m.category || '') + ' ' + m.slug).toLowerCase()
+    return t.includes('mlb') || t.includes('baseball') || t.includes('world series')
+        || t.includes('yankees') || t.includes('dodgers') || t.includes('astros')
+        || t.includes('mets') || t.includes('braves') || t.includes('phillies')
+        || t.includes('padres') || t.includes('guardians') || t.includes('tigers')
+        || t.includes('orioles') || t.includes('royals') || t.includes('red sox')
+        || t.includes('cubs') || t.includes('brewers') || t.includes('mariners')
+}
 
 function formatVolume(volume: number): string {
     if (volume >= 1_000_000) {
@@ -23,8 +36,10 @@ function MarketCard({
     isSelected: boolean
     onClick: () => void
 }) {
-    const yesPercent = Math.min(Math.max(market.yes_percentage, 0), 100)
-    const noPercent = 100 - yesPercent
+    const { setStreamUrl } = useMarketStore()
+    const sides = marketSides(market)
+    const yesPercent = sides.a.pct
+    const noPercent = sides.b.pct
 
     return (
         <button
@@ -64,10 +79,10 @@ function MarketCard({
                         <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                             <span className="font-bold text-emerald-400 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                {yesPercent.toFixed(1)}% Yes
+                                {sides.a.label} {yesPercent.toFixed(1)}%
                             </span>
                             <span className="text-slate-400">
-                                {noPercent.toFixed(1)}% No
+                                {sides.b.label} {noPercent.toFixed(1)}%
                             </span>
                         </div>
                         <div className="w-full h-1.5 bg-surface-800 rounded-full overflow-hidden flex border border-white/5">
@@ -87,11 +102,22 @@ function MarketCard({
                         <span className="flex items-center gap-1 text-slate-300 bg-surface-950/60 px-2 py-0.5 rounded border border-white/5">
                             {formatVolume(market.volume_7d)} vol
                         </span>
-                        {market.category && (
-                            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold truncate max-w-[90px]">
-                                {market.category}
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {isBaseball(market) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setStreamUrl(STREAM_URL) }}
+                                    className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-bold"
+                                >
+                                    <Monitor className="w-3 h-3" />
+                                    Watch
+                                </button>
+                            )}
+                            {market.category && (
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold truncate max-w-[90px]">
+                                    {market.category}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

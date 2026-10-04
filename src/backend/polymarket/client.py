@@ -12,6 +12,8 @@ import httpx
 import httpx
 
 from src.backend.config import settings
+from src.backend.polymarket.outcomes import parse_outcomes
+from src.backend.sports.registry import is_sports_market
 from src.backend.polymarket.schemas import MarketResponse
 
 from src.backend.config import settings
@@ -155,7 +157,7 @@ class PolymarketClient:
             logger.error(f"Error fetching market by slug {slug}: {e}")
             return None
 
-    async def get_top_markets_by_volume(self, limit: int = 100) -> list[dict]:
+    async def get_top_markets_by_volume(self, limit: int = 100, sports_only: bool = False) -> list[dict]:
         """
         Get the top active markets by 7-day volume.
 
@@ -171,7 +173,15 @@ class PolymarketClient:
 
         # Fetch enough markets to get requested number of active ones
         # We fetch more because some might be inactive/closed
-        while len(all_markets) < limit * 2:
+        # Sports markets are a minority of the busiest markets, so read deeper pages until enough turn up
+        max_markets = 1500 if sports_only else limit * 2
+
+        def enough() -> bool:
+            if sports_only:
+                return sum(1 for m in all_markets if is_sports_market(m.slug or m.market_slug)) >= limit
+            return len(all_markets) >= limit * 2
+
+        while len(all_markets) < max_markets and not enough():
             try:
                 batch = await self.fetch_markets(
                     limit=fetch_limit,
@@ -197,6 +207,8 @@ class PolymarketClient:
         processed_markets = []
         for market in all_markets:
             if not market.active or market.closed or market.archived:
+                continue
+            if sports_only and not is_sports_market(market.slug or market.market_slug):
                 continue
 
             # Parse yes percentage from outcome_prices
@@ -255,6 +267,7 @@ class PolymarketClient:
                     "volume_7d": volume_7d,
                     "liquidity": liquidity,
                     "yes_percentage": round(yes_percentage, 2),
+                    "outcomes_json": json.dumps(parse_outcomes(market.outcomes, market.outcome_prices)),
                     "is_active": market.active and not market.closed,
                     "end_date": end_date,
                     "image_url": market.image or market.icon or None,

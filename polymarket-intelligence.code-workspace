@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../Wolf-Logic-CML/3-MEMORY-PROCESSING"
 		}
 	]
 }

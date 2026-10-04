@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo, useCallback } from 'react'
 import { createChart, AreaSeries, IChartApi, ISeriesApi, UTCTimestamp, ColorType } from 'lightweight-charts'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useMarketStore, ShareType } from '../stores/marketStore'
+import { marketSides } from '../utils/sides'
 import { Loader2, TrendingUp, TrendingDown } from 'lucide-react'
 
 interface ChartDataPoint {
@@ -15,9 +16,13 @@ interface ChartDataPoint {
 function ShareTypeToggle({
     value,
     onChange,
+    yesLabel = 'Yes',
+    noLabel = 'No',
 }: {
     value: ShareType
     onChange: (type: ShareType) => void
+    yesLabel?: string
+    noLabel?: string
 }) {
     return (
         <div className="flex items-center gap-1 p-1 bg-surface-800 rounded-lg">
@@ -28,7 +33,7 @@ function ShareTypeToggle({
                         : 'text-surface-400 hover:text-surface-200'
                     }`}
             >
-                Yes
+                {yesLabel}
             </button>
             <button
                 onClick={() => onChange('No')}
@@ -37,7 +42,7 @@ function ShareTypeToggle({
                         : 'text-surface-400 hover:text-surface-200'
                     }`}
             >
-                No
+                {noLabel}
             </button>
         </div>
     )
@@ -248,7 +253,12 @@ export default function PriceChart() {
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
                         <h3 className="text-lg font-semibold text-white">Price History</h3>
-                        <ShareTypeToggle value={selectedShareType} onChange={setSelectedShareType} />
+                        <ShareTypeToggle
+                            value={selectedShareType}
+                            onChange={setSelectedShareType}
+                            yesLabel={selectedMarket ? marketSides(selectedMarket).a.label : 'Yes'}
+                            noLabel={selectedMarket ? marketSides(selectedMarket).b.label : 'No'}
+                        />
                     </div>
                     <span className="text-sm text-surface-300">Recording history...</span>
                 </div>
@@ -276,7 +286,12 @@ export default function PriceChart() {
                         <h3 className="text-lg font-semibold text-white">
                             {selectedShareType} Price History
                         </h3>
-                        <ShareTypeToggle value={selectedShareType} onChange={setSelectedShareType} />
+                        <ShareTypeToggle
+                            value={selectedShareType}
+                            onChange={setSelectedShareType}
+                            yesLabel={selectedMarket ? marketSides(selectedMarket).a.label : 'Yes'}
+                            noLabel={selectedMarket ? marketSides(selectedMarket).b.label : 'No'}
+                        />
                     </div>
                     {priceChange && (
                         <div className="flex items-center gap-1 mt-1">

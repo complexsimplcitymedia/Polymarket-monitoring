@@ -49,6 +49,28 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
+def _add_missing_columns(sync_conn) -> None:
+    """Add columns that were introduced after a table was first created."""
+    from sqlalchemy import inspect, text
+
+    wanted = {
+        "markets": {"outcomes_json": "TEXT"},
+        "game_snapshots": {"poly_score": "VARCHAR(20)", "poly_period": "VARCHAR(10)", "poly_elapsed": "VARCHAR(10)",
+                           "poly_updated_at": "TIMESTAMP", "ts_score": "VARCHAR(20)", "ts_clock": "VARCHAR(20)",
+                           "ts_updated_at": "TIMESTAMP", "poly_ms": "INTEGER", "espn_ms": "INTEGER", "ts_ms": "INTEGER",
+                           "ncaa_score": "VARCHAR(20)", "ncaa_clock": "VARCHAR(30)"},
+        "alerts": {"status": "VARCHAR(12) DEFAULT 'active' NOT NULL", "retracted_at": "TIMESTAMP", "retract_note": "TEXT"},
+    }
+    inspector = inspect(sync_conn)
+    for table, columns in wanted.items():
+        if table not in inspector.get_table_names():
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        for name, ddl in columns.items():
+            if name not in existing:
+                sync_conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+
+
 async def init_db() -> None:
     """Initialize the database by creating all tables."""
     async with engine.begin() as conn:
@@ -56,6 +78,7 @@ async def init_db() -> None:
             from sqlalchemy import text
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
 
 
 async def close_db() -> None:

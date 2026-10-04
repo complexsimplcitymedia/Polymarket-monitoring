@@ -16,9 +16,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.cache import user_stats_cache
+from src.backend.config import settings
 from src.backend.database import get_db
 from src.backend.models import AppState, Market
 from src.backend.polymarket.client import polymarket_client
+from src.backend.polymarket.outcomes import parse_outcomes
+from src.backend.sports.registry import MARKET_PREFIXES
 from src.backend.polymarket.schemas import MarketListResponse, MarketOut, MarketStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -146,23 +149,39 @@ def _compute_global_stats(
     return global_pnl, global_roi, total_balance
 
 
+FRESH_MARKET_HOURS = 3  # the refresh runs every 15 minutes
+MIN_FRESH_MARKETS = 10
+
+
 @router.get("/top50", response_model=MarketListResponse)
 async def get_top_50_markets(db: AsyncSession = Depends(get_db)) -> MarketListResponse:
     """
-    Get the top 100 markets by 7-day volume.
+    Get the top 100 sports markets by 7-day volume (MLB, college football, NFL, tennis, basketball).
     
     (Endpoint name kept as /top50 for compatibility, but returns up to 100)
 
     Returns:
         List of top 100 active markets sorted by volume.
     """
+    # Only markets refreshed lately are live. A finished game keeps its last price and its
+    # is_active flag forever, so ranking by 7-day volume alone fills the list with settled games.
+    cutoff = datetime.utcnow() - timedelta(hours=FRESH_MARKET_HOURS)
+    sports = Market.slug.op("~*")(f"^({'|'.join(MARKET_PREFIXES)}|itf[a-z]*)-") if settings.SPORTS_ONLY else True
     result = await db.execute(
         select(Market)
-        .where(Market.is_active == True)  # noqa: E712
+        .where(Market.is_active == True, Market.last_updated >= cutoff, sports)  # noqa: E712
         .order_by(Market.volume_7d.desc())
         .limit(100)
     )
     markets = result.scalars().all()
+    if len(markets) < MIN_FRESH_MARKETS:  # the refresh job has stalled: show the old list rather than nothing
+        result = await db.execute(
+            select(Market)
+            .where(Market.is_active == True, sports)  # noqa: E712
+            .order_by(Market.volume_7d.desc())
+            .limit(100)
+        )
+        markets = result.scalars().all()
 
     # Get last update time
     state_result = await db.execute(
@@ -733,6 +752,7 @@ async def get_market(market_id: str, db: AsyncSession = Depends(get_db)) -> Mark
                     volume_7d=volume_7d_val,
                     liquidity=liquidity_val,
                     yes_percentage=round(yes_percentage, 2),
+                    outcomes_json=json.dumps(parse_outcomes(api_market.outcomes, api_market.outcome_prices)),
                     is_active=api_market.active and not api_market.closed,
                     end_date=end_date,
                     image_url=api_market.image or api_market.icon,
@@ -800,6 +820,7 @@ async def get_market(market_id: str, db: AsyncSession = Depends(get_db)) -> Mark
 
             # Update DB record
             market.yes_percentage = round(yes_percentage, 2)
+            market.outcomes_json = json.dumps(parse_outcomes(api_market.outcomes, api_market.outcome_prices))
             market.volume_24h = volume_24h_val
             market.volume_7d = volume_7d_val
             market.liquidity = liquidity_val

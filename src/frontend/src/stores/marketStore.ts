@@ -9,6 +9,7 @@ export interface Market {
     volume_7d: number
     liquidity: number
     yes_percentage: number
+    outcomes?: { name: string; price: number }[]
     is_active: boolean
     end_date?: string | null
     image_url?: string | null
@@ -25,10 +26,12 @@ interface MarketStore {
     selectedTimeframe: Timeframe
     selectedShareType: ShareType
     searchQuery: string
+    streamUrl: string | null
     setSelectedMarket: (market: Market | null) => void
     setSelectedTimeframe: (timeframe: Timeframe) => void
     setSelectedShareType: (shareType: ShareType) => void
     setSearchQuery: (query: string) => void
+    setStreamUrl: (url: string | null) => void
 }
 
 export const useMarketStore = create<MarketStore>((set) => ({
@@ -36,8 +39,10 @@ export const useMarketStore = create<MarketStore>((set) => ({
     selectedTimeframe: '24H',
     selectedShareType: 'Yes',
     searchQuery: '',
+    streamUrl: null,
     setSelectedMarket: (market) => set({ selectedMarket: market }),
     setSelectedTimeframe: (timeframe) => set({ selectedTimeframe: timeframe }),
     setSelectedShareType: (shareType) => set({ selectedShareType: shareType }),
     setSearchQuery: (query) => set({ searchQuery: query }),
+    setStreamUrl: (url) => set({ streamUrl: url }),
 }))
