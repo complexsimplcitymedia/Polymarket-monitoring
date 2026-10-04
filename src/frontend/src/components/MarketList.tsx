@@ -4,8 +4,7 @@ import { clsx } from 'clsx'
 import { useMarkets } from '../hooks/useMarkets'
 import { useMarketStore, Market } from '../stores/marketStore'
 import { marketSides } from '../utils/sides'
-
-const STREAM_URL = 'https://wolf-logic-tablet.barred-interval.ts.net:5800/vnc.html?autoconnect=true&show_dot=true&host=wolf-logic-tablet.barred-interval.ts.net&port=5900'
+import { getSecureVncUrl } from '../utils/vnc'
 
 function isBaseball(m: Market): boolean {
     const t = (m.title + ' ' + (m.category || '') + ' ' + m.slug).toLowerCase()
@@ -105,7 +104,7 @@ function MarketCard({
                         <div className="flex items-center gap-2">
                             {isBaseball(market) && (
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); setStreamUrl(STREAM_URL) }}
+                                    onClick={(e) => { e.stopPropagation(); setStreamUrl(getSecureVncUrl()) }}
                                     className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-bold"
                                 >
                                     <Monitor className="w-3 h-3" />

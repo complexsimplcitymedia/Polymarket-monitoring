@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, RefreshCw, Wallet } from 'lucide-react'
 import AlertsPanel from './AlertsPanel'
 import { useMarketStore } from '../stores/marketStore'
+import { getSecureVncUrl } from '../utils/vnc'
 
 import { Bet, CycleGroup, LiveInfo, fetchAccount, useAccount, useBets, useSetBetNote } from '../hooks/useAccount'
 
@@ -477,7 +478,7 @@ export default function AccountPage() {
             <div className="col-span-12 lg:col-span-4 lg:border-l lg:border-white/10 lg:pl-4">
                 <div className="sticky top-20 glass-card rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex items-center justify-center w-full aspect-video" id="stream-panel">
                     <iframe
-                        src={streamUrl || 'http://100.110.82.108:5800/vnc.html?autoconnect=true&show_dot=true&host=100.110.82.108&port=5900'}
+                        src={streamUrl || getSecureVncUrl()}
                         className="w-full h-full border-0"
                         allow="fullscreen"
                         title="MLB Stream"

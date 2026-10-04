@@ -1,19 +1,8 @@
 import { ExternalLink, LockKeyhole, Radio, ShieldCheck } from 'lucide-react'
+import { getSecureVncUrl } from '../utils/vnc'
 
 const SOURCE_VNC_URL =
     'http://100.110.82.108:5800/vnc.html?autoconnect=true&show_dot=true&host=100.110.82.108&port=5900'
-
-function getSecureVncUrl(): string {
-    const url = new URL('/vnc/vnc.html', window.location.origin)
-    const securePort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80')
-    url.searchParams.set('autoconnect', 'true')
-    url.searchParams.set('show_dot', 'true')
-    url.searchParams.set('encrypt', 'true')
-    url.searchParams.set('host', window.location.hostname)
-    url.searchParams.set('port', securePort)
-    url.searchParams.set('path', 'vnc/websockify')
-    return url.toString()
-}
 
 export function SecureDeviceFeed() {
     const secureVncUrl = getSecureVncUrl()
