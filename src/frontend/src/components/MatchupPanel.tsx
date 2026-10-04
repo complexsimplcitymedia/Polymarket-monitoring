@@ -9,11 +9,10 @@ import { FootballLeague, FootballTeamRow, useFootballTeams } from '../hooks/useF
 import { MlbTeamRow, useMlbTeams } from '../hooks/useMlbTeams'
 import { TierLeague, useSetTier, useTiers } from '../hooks/useTiers'
 import { TierSelect } from './TierSelect'
+import { getSecureVncUrl } from '../utils/vnc'
 
-// Watch feed (Architect-supplied 2026-10-04): droidVNC-NG's own built-in noVNC client runs on the
-// tablet itself — 100.110.82.108:5800 serves vnc.html and websockets to its VNC server on 5900.
-// No bridge on VM4 needed. Access key rides as the password param, per the Architect's share link.
-const WATCH_URL = 'http://100.110.82.108:5800/vnc.html?autoconnect=true&show_dot=true&host=100.110.82.108&port=5900'
+// Watch feed: the tablet's noVNC (108:5800), served through this origin's /vnc/ proxy so it stays HTTPS/WSS.
+const WATCH_URL = getSecureVncUrl()
 
 /** The video hero: noVNC frame with the popup camera/link buttons and a live badge, Polymarket-style. */
 function VideoHero({ title, subtitle }: { title: string; subtitle: string }) {

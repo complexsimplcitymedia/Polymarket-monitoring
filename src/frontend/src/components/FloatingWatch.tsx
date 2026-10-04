@@ -7,9 +7,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMarketStore } from '../stores/marketStore'
 import { marketSides } from '../utils/sides'
 import { useAccount } from '../hooks/useAccount'
+import { getSecureVncUrl } from '../utils/vnc'
 
-// Watch feed (Architect-supplied): the tablet's own droidVNC-NG noVNC web client on 108:5800 — no VM4 bridge.
-const WATCH_URL = 'http://100.110.82.108:5800/vnc.html?autoconnect=true&show_dot=true&host=100.110.82.108&port=5900'
+// Watch feed: the tablet's noVNC (108:5800), served through this origin's /vnc/ proxy so it stays HTTPS/WSS.
+const WATCH_URL = getSecureVncUrl()
 
 const STORE_KEY = 'wolf-watch-window'
 
