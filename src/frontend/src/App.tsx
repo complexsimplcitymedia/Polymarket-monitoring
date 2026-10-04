@@ -34,13 +34,14 @@ import { AuthGate } from './components/AuthGate'
 import { useAuthStore } from './stores/authStore'
 import { marketSides } from './utils/sides'
 import { ExternalLink, LogOut, Bot } from 'lucide-react'
+import { SecureDeviceFeed } from './components/SecureDeviceFeed'
 
 function App() {
     const { selectedMarket, setSelectedMarket } = useMarketStore()
     const { data: marketsData } = useMarkets()
     const { logout, user } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats' | 'debate'>('news')
-    const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user' | 'account' | 'teams' | 'ai' | 'live'>('account')
+    const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user' | 'account' | 'teams' | 'ai' | 'live' | 'feed'>('account')
 
     useEffect(() => {
         const list = marketsData?.markets
@@ -198,6 +199,17 @@ function App() {
                             >
                                 <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                                 Extras (Weather)
+                            </button>
+                            <button
+                                onClick={() => setActiveView('feed')}
+                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeView === 'feed'
+                                        ? 'bg-emerald-500/30 text-white border border-emerald-500/50 shadow-lg shadow-emerald-500/15'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                                Secure Feed
                             </button>
                         </div>
 
@@ -411,6 +423,7 @@ function App() {
                 {activeView === 'account' && <AccountPage />}
                 {activeView === 'teams' && <TeamsPage />}
                 {activeView === 'ai' && <AiPanel />}
+                {activeView === 'feed' && <SecureDeviceFeed />}
             </main>
 
             {/* Polished Footer with CSMP Branding */}

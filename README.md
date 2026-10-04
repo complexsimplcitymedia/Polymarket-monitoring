@@ -108,6 +108,16 @@ flowchart TD
 | **LLM Inference** | Node 06 VM (`:11434`) | Dedicated Ollama engine running `qwen2.5:3b`, `qwen2.5:7b`, `deepseek-r1`, and `qwen3-embedding:4b` |
 | **Edge Ingress** | Server 07 VM (`:80`, `:443`) | Reverse proxy with TLS at `https://polymarket.complexsimplicity-ai.com` |
 
+### Secure device feed
+
+The original noVNC source target remains unchanged and is preserved in the dashboard:
+
+```text
+http://100.110.82.108:5800/vnc.html?autoconnect=true&show_dot=true&host=100.110.82.108&port=5900
+```
+
+For users, the dashboard's **Secure Feed** view uses the current HTTPS origin and proxies the noVNC page through `/vnc/`, with the VNC WebSocket tunnel exposed at `/vnc/websockify`. The production edge must terminate TLS for the dashboard; the browser then uses HTTPS/WSS while the internal proxy forwards to the original device services on ports `5800` and `5900`.
+
 > [!NOTE]
 > All runtime services, APIs, databases, and LLM instances run **100% on the remote cloud VMs**. Local development machines (Ubuntu WSL / Windows IDE) are strictly thin clients for code editing and git staging.
 
