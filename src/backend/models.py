@@ -4,7 +4,7 @@ SQLAlchemy models for the Polymarket News Tracker.
 Defines Market, NewsArticle, PriceHistory, and AppState tables with proper indexing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
@@ -18,7 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from src.backend.database import Base
 
@@ -120,6 +120,19 @@ class NewsArticle(Base):
         Index("idx_news_published_at", "published_at"),
         Index("idx_news_market_published", "market_id", "published_at"),
     )
+
+    @validates("published_at")
+    def _coerce_published_at_naive(self, key: str, value: datetime | None) -> datetime | None:
+        """Normalize published_at to naive UTC.
+
+        The ``published_at`` column is TIMESTAMP WITHOUT TIME ZONE. Passing a
+        tz-aware datetime makes asyncpg raise
+        "can't subtract offset-naive and offset-aware datetimes" on INSERT.
+        Convert to UTC and drop tzinfo so every write path agrees with the column.
+        """
+        if value is not None and value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
 
     def to_dict(self) -> dict:
         """Convert model to dictionary."""

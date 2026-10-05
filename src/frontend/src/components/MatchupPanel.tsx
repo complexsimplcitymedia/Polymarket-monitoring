@@ -1,99 +1,10 @@
-// LiveVideo: Polymarket-style game video hero for the Architect's own pipeline.
-// The tablet (wolf-logic-tablet, running the paid MLB/TV app) is streamed over RFB 5900 on the
-// tailnet; websockify on VM4 (:6900) bridges it to a websocket; noVNC renders it below.
-// Video left, matchup numbers right — the same shape as the Polymarket event page.
-import { useState, ReactNode } from 'react'
+import { ReactNode } from 'react'
 import { Market } from '../stores/marketStore'
 import { marketSides } from '../utils/sides'
 import { FootballLeague, FootballTeamRow, useFootballTeams } from '../hooks/useFootballTeams'
 import { MlbTeamRow, useMlbTeams } from '../hooks/useMlbTeams'
 import { TierLeague, useSetTier, useTiers } from '../hooks/useTiers'
 import { TierSelect } from './TierSelect'
-import { getSecureVncUrl } from '../utils/vnc'
-
-// Watch feed: the tablet's noVNC (108:5800), served through this origin's /vnc/ proxy so it stays HTTPS/WSS.
-const WATCH_URL = getSecureVncUrl()
-
-/** The video hero: noVNC frame with the popup camera/link buttons and a live badge, Polymarket-style. */
-function VideoHero({ title, subtitle }: { title: string; subtitle: string }) {
-    const [reloadKey, setReloadKey] = useState(0)
-    return (
-        <div>
-            <div className="relative rounded-2xl overflow-hidden bg-black border border-white/10 shadow-2xl">
-                <iframe
-                    key={reloadKey}
-                    src={WATCH_URL}
-                    title={title}
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                    className="w-full aspect-video block bg-black"
-                />
-                {/* Live badge, top-left */}
-                <span className="absolute top-2.5 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm border border-white/10">
-                    <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500" />
-                    </span>
-                    <span className="text-[10px] font-bold font-mono text-white tracking-wider">LIVE</span>
-                </span>
-                {/* Popup controls, top-right: pop-out, focus, reload, fullscreen link */}
-                <div className="absolute top-2.5 right-3 flex items-center gap-1.5">
-                    <button
-                        type="button"
-                        title="Reload stream"
-                        onClick={() => setReloadKey((k) => k + 1)}
-                        className="w-7 h-7 grid place-items-center rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-slate-300 hover:text-white hover:bg-black/80 transition-colors text-xs"
-                    >
-                        ⟳
-                    </button>
-                    <a
-                        href="/novnc/vnc.html?host=100.110.82.54&port=6900&autoconnect=1&resize=scale&view_only=0"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Open video in its own window"
-                        className="w-7 h-7 grid place-items-center rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-slate-300 hover:text-white hover:bg-black/80 transition-colors text-xs"
-                    >
-                        ⧉
-                    </a>
-                </div>
-            </div>
-            {/* Under-video header: sport label left, actions right — mirrors the reference layout */}
-            <div className="flex items-center justify-between mt-3 px-0.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">{subtitle}</span>
-                <div className="flex items-center gap-3 text-slate-500">
-                    <a
-                        href="https://www.mlb.com/tv"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Open the source broadcast"
-                        className="hover:text-slate-200 transition-colors text-xs"
-                    >
-                        ▤
-                    </a>
-                    <a
-                        href="https://polymarket.us"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Open Polymarket US"
-                        className="hover:text-slate-200 transition-colors text-xs"
-                    >
-                        ⌁
-                    </a>
-                    <a
-                        href="https://www.mlb.com/tv/schedule"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="MLB.TV schedule — pick the game"
-                        className="hover:text-slate-200 transition-colors text-xs"
-                    >
-                        ⇪
-                    </a>
-                </div>
-            </div>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-black font-display tracking-tight text-white truncate">{title}</h2>
-        </div>
-    )
-}
 
 const norm = (s: string): string => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -206,12 +117,7 @@ export default function MatchupPanel({ market }: { market: Market | null }) {
 
     const layout = (sportLabel: string, league: TierLeague, aName: string, bName: string, aId: string, bId: string, rows: Row[]) => (
         <section className="glass-card rounded-2xl p-4 lg:p-6 border border-white/10 shadow-2xl">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(300px,2fr)] items-start">
-                <VideoHero title={market.title} subtitle={sportLabel} />
-                <div className="min-w-0">
-                    <Table title={`Matchup · ${sportLabel.split('·')[0].trim()}`} league={league} aName={aName} bName={bName} aId={aId} bId={bId} rows={rows} />
-                </div>
-            </div>
+            <Table title={`Matchup · ${sportLabel.split('·')[0].trim()}`} league={league} aName={aName} bName={bName} aId={aId} bId={bId} rows={rows} />
         </section>
     )
 

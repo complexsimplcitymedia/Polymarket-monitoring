@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, RefreshCw, Wallet } from 'lucide-react'
 import AlertsPanel from './AlertsPanel'
-import { useMarketStore } from '../stores/marketStore'
-import { getSecureVncUrl } from '../utils/vnc'
 
 import { Bet, CycleGroup, LiveInfo, fetchAccount, useAccount, useBets, useSetBetNote } from '../hooks/useAccount'
 
@@ -248,7 +246,6 @@ export default function AccountPage() {
     const { data, isLoading, error } = useAccount()
     const queryClient = useQueryClient()
     const [refreshing, setRefreshing] = useState(false)
-    const { streamUrl } = useMarketStore()
 
     const refresh = async () => {
         setRefreshing(true)
@@ -284,7 +281,7 @@ export default function AccountPage() {
     return (
         <div className="max-w-[1920px] mx-auto px-4 py-6 grid grid-cols-12 gap-4">
             {/* Account — left side */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
+            <div className="col-span-12 space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-200">
                     <Wallet className="w-5 h-5 text-emerald-400" />
@@ -370,17 +367,6 @@ export default function AccountPage() {
                                                     {leg.live && <LiveLine live={leg.live} />}
                                                 </span>
                                                 <span className="flex items-center gap-2">
-                                                    {leg.live?.state === 'in' && (
-                                                        <a
-                                                            href="https://www.mlb.com/tv"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            title="Watch this game on MLB.TV"
-                                                            className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 transition-colors shrink-0"
-                                                        >
-                                                            ▶ MLB.TV
-                                                        </a>
-                                                    )}
                                                     <span
                                                         className={
                                                             leg.state === 'WON'
@@ -474,17 +460,6 @@ export default function AccountPage() {
             </Section>
             </div>
 
-            {/* Stream — right column */}
-            <div className="col-span-12 lg:col-span-4 lg:border-l lg:border-white/10 lg:pl-4">
-                <div className="sticky top-20 glass-card rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex items-center justify-center w-full aspect-video" id="stream-panel">
-                    <iframe
-                        src={streamUrl || getSecureVncUrl()}
-                        className="w-full h-full border-0"
-                        allow="fullscreen"
-                        title="MLB Stream"
-                    />
-                </div>
-            </div>
         </div>
     )
 }

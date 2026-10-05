@@ -7,7 +7,7 @@ Uses NewsAPI to fetch articles related to market topics.
 import hashlib
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 
@@ -191,13 +191,20 @@ class NewsAggregator:
                     elif isinstance(article_in.source, str):
                         source_name = article_in.source
 
-                    # Parse published date
+                    # Parse published date.
+                    # news_articles.published_at is TIMESTAMP WITHOUT TIME ZONE, so a
+                    # tz-aware datetime would blow up the asyncpg INSERT with
+                    # "can't subtract offset-naive and offset-aware datetimes".
+                    # Normalize to UTC and drop tzinfo to match the column.
                     published_at = None
                     if article_in.publishedAt:
                         try:
-                            published_at = datetime.fromisoformat(
+                            parsed = datetime.fromisoformat(
                                 article_in.publishedAt.replace("Z", "+00:00")
                             )
+                            if parsed.tzinfo is not None:
+                                parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                            published_at = parsed
                         except Exception:
                             pass
 

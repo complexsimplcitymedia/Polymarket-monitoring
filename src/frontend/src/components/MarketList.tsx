@@ -1,20 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Search, TrendingUp, TrendingDown, Loader2, Sparkles, Monitor } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Loader2, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useMarkets } from '../hooks/useMarkets'
 import { useMarketStore, Market } from '../stores/marketStore'
 import { marketSides } from '../utils/sides'
-import { getSecureVncUrl } from '../utils/vnc'
 
-function isBaseball(m: Market): boolean {
-    const t = (m.title + ' ' + (m.category || '') + ' ' + m.slug).toLowerCase()
-    return t.includes('mlb') || t.includes('baseball') || t.includes('world series')
-        || t.includes('yankees') || t.includes('dodgers') || t.includes('astros')
-        || t.includes('mets') || t.includes('braves') || t.includes('phillies')
-        || t.includes('padres') || t.includes('guardians') || t.includes('tigers')
-        || t.includes('orioles') || t.includes('royals') || t.includes('red sox')
-        || t.includes('cubs') || t.includes('brewers') || t.includes('mariners')
-}
 
 function formatVolume(volume: number): string {
     if (volume >= 1_000_000) {
@@ -35,7 +25,6 @@ function MarketCard({
     isSelected: boolean
     onClick: () => void
 }) {
-    const { setStreamUrl } = useMarketStore()
     const sides = marketSides(market)
     const yesPercent = sides.a.pct
     const noPercent = sides.b.pct
@@ -102,15 +91,6 @@ function MarketCard({
                             {formatVolume(market.volume_7d)} vol
                         </span>
                         <div className="flex items-center gap-2">
-                            {isBaseball(market) && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setStreamUrl(getSecureVncUrl()) }}
-                                    className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-bold"
-                                >
-                                    <Monitor className="w-3 h-3" />
-                                    Watch
-                                </button>
-                            )}
                             {market.category && (
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold truncate max-w-[90px]">
                                     {market.category}
