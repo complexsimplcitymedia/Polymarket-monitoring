@@ -5,7 +5,6 @@ import {
     Wallet,
     Trophy,
     Activity,
-    MessageSquare,
     Zap,
     Gauge,
 } from 'lucide-react'
@@ -19,7 +18,6 @@ import { TopHolders } from './components/TopHolders'
 import { PriceMovement } from './components/PriceMovement'
 import { TimeframeSelector } from './components/TimeframeSelector'
 import { SearchBar } from './components/SearchBar'
-import DebateFloor from './components/DebateFloor'
 import AccountPage from './components/AccountPage'
 import LiveStream from './components/LiveStream'
 import TeamsPage from './components/TeamsPage'
@@ -38,7 +36,7 @@ function App() {
     const { selectedMarket, setSelectedMarket } = useMarketStore()
     const { data: marketsData } = useMarkets()
     const { logout, user } = useAuthStore()
-    const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats' | 'debate'>('news')
+    const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats'>('news')
     const [activeView, setActiveView] = useState<'dashboard' | 'markets' | 'teams' | 'account' | 'latency'>('dashboard')
 
 
@@ -371,18 +369,6 @@ function App() {
                                         <Activity className="w-4 h-4 text-purple-400" />
                                         <span>Price Analysis</span>
                                     </button>
-
-                                    <button
-                                        onClick={() => setActiveTab('debate')}
-                                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-display font-semibold relative transition-all whitespace-nowrap ${
-                                            activeTab === 'debate'
-                                                ? 'bg-blue-500/25 text-blue-300 border border-blue-500/40 shadow-sm shadow-blue-500/10'
-                                                : 'text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        <MessageSquare className="w-4 h-4 text-blue-400" />
-                                        <span>AI Debate Floor</span>
-                                    </button>
                                 </div>
 
                                 <div className="mt-4">
@@ -390,7 +376,6 @@ function App() {
                                     {activeTab === 'whales' && <WhaleList />}
                                     {activeTab === 'holders' && <TopHolders />}
                                     {activeTab === 'stats' && <PriceMovement />}
-                                    {activeTab === 'debate' && <DebateFloor marketId={selectedMarket?.id || null} />}
                                 </div>
                             </section>
                         </div>
