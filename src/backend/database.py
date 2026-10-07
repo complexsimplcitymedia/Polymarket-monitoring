@@ -8,8 +8,15 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-
-from src.backend.config import settings
+try:
+    from src.backend.config import settings
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+    _repo_root = str(Path(__file__).resolve().parents[2])
+    if _repo_root not in sys.path:
+        sys.path.insert(0, _repo_root)
+    from src.backend.config import settings
 
 
 class Base(DeclarativeBase):
