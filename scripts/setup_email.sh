@@ -15,13 +15,9 @@ export SMTP_HOST="${SMTP_HOST:-smtp.hostinger.com}" SMTP_PORT="${SMTP_PORT:-465}
 export SMTP_USER SMTP_PASSWORD ALERT_EMAIL_TO SMTP_FROM="$SMTP_USER"
 
 TARGET_ENV=".env"
-if [ -d "secrets" ]; then
-    TARGET_ENV="secrets/.env"
-fi
 
 python3 scripts/_set_env.py "$TARGET_ENV" SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASSWORD SMTP_FROM ALERT_EMAIL_TO
 chmod 600 "$TARGET_ENV"
-[ -L ".env" ] || [ ! -f "secrets/.env" ] || ln -sf secrets/.env .env
 echo "Saved to $TARGET_ENV. Restarting the backend..."
 docker compose up -d --force-recreate backend >/dev/null
 for i in $(seq 1 30); do curl -sf localhost:8001/api/health >/dev/null && break; sleep 2; done

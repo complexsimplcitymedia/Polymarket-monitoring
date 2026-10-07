@@ -14,8 +14,7 @@ import httpx
 from dotenv import load_dotenv
 
 # Load environment
-_secrets_env = os.path.join(os.path.dirname(__file__), "..", "secrets", ".env")
-ENV_PATH = _secrets_env if os.path.exists(_secrets_env) else os.path.join(os.path.dirname(__file__), "..", ".env")
+ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
 load_dotenv(ENV_PATH)
 
 logging.basicConfig(

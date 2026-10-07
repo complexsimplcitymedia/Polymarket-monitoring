@@ -1,11 +1,7 @@
-# Environment & Secrets
+# Environment
 .env
 .env*
 .env.*
-secrets/*
-!secrets/.gitkeep
-!secrets/.env.example
-!secrets/README.md
 
 # Python
 __pycache__/
