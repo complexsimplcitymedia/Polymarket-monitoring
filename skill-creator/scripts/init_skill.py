@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """
 Skill Initializer - Creates a new skill from template
 

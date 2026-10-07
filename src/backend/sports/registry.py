@@ -24,7 +24,7 @@ SPORTS: tuple[Sport, ...] = (
     Sport("wta", "WTA tennis", "active"),
     Sport("itfme", "ITF men's tennis", "active"),
     Sport("itfwo", "ITF women's tennis", "active"),
-    Sport("nba", "NBA", "offseason"),  # placeholder, not in season yet
+    Sport("nba", "NBA", "active"),  # NBA preseason / regular season active
     Sport("cbb", "College basketball", "offseason"),  # placeholder, not in season yet
 )
 

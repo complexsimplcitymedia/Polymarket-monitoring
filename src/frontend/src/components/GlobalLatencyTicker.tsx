@@ -61,13 +61,15 @@ export function GlobalLatencyTicker() {
     }, [runPings])
 
     return (
-        <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-surface-950/80 border border-white/10 text-[11px] font-mono shadow-inner backdrop-blur-md">
-            <div className="flex items-center gap-1.5 text-slate-400 font-semibold uppercase tracking-wider">
-                <Activity className={`w-3.5 h-3.5 text-emerald-400 ${isPinging ? 'animate-spin' : 'animate-pulse'}`} />
-                <span className="hidden lg:inline text-slate-300">Feed Latency:</span>
+        <div className="w-full flex items-center justify-between gap-1.5 font-mono text-xs min-w-0">
+            {/* Header / Label */}
+            <div className="flex items-center gap-1.5 text-slate-400 font-semibold uppercase tracking-wider shrink-0">
+                <Activity className={`w-3.5 h-3.5 text-emerald-400 shrink-0 ${isPinging ? 'animate-spin' : 'animate-pulse'}`} />
+                <span className="text-[10px] text-slate-300 font-bold hidden sm:inline">FEED LATENCY:</span>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            {/* Compact Latency Badges */}
+            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-hidden">
                 {pings.map((p) => {
                     const color =
                         p.status === 'fast'
@@ -81,28 +83,24 @@ export function GlobalLatencyTicker() {
                     return (
                         <div
                             key={p.short}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold ${color}`}
-                            title={`${p.name}: ${p.latencyMs ? p.latencyMs + 'ms' : 'Down'} (${p.lagLabel})`}
+                            className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg border text-[10px] font-black shrink-0 ${color}`}
+                            title={`${p.name}: ${p.latencyMs ? p.latencyMs + 'ms' : 'Offline'} (${p.lagLabel || ''})`}
                         >
                             <span className="opacity-75">{p.short}:</span>
                             <span>{p.latencyMs !== null ? `${p.latencyMs}ms` : 'ERR'}</span>
-                            {p.lagLabel && (
-                                <span className="hidden xl:inline text-[9px] opacity-60 font-normal ml-0.5">
-                                    [{p.lagLabel}]
-                                </span>
-                            )}
                         </div>
                     )
                 })}
             </div>
 
+            {/* Refresh Trigger */}
             <button
                 onClick={runPings}
                 disabled={isPinging}
                 title={`Last pinged ${lastPingTime.toLocaleTimeString()}. Click to refresh.`}
-                className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition disabled:opacity-50"
+                className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition disabled:opacity-50 shrink-0"
             >
-                <RefreshCw className={`w-3 h-3 ${isPinging ? 'animate-spin text-emerald-400' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
         </div>
     )

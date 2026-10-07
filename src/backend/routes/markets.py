@@ -8,11 +8,12 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, or_, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.cache import user_stats_cache
@@ -22,6 +23,7 @@ from src.backend.models import AppState, Market
 from src.backend.polymarket.client import polymarket_client
 from src.backend.polymarket.outcomes import parse_outcomes
 from src.backend.sports.registry import MARKET_PREFIXES
+from src.backend.sports.live_scores import fetch_scoreboards, match_game
 from src.backend.polymarket.schemas import MarketListResponse, MarketOut, MarketStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -231,6 +233,150 @@ async def get_market_status(db: AsyncSession = Depends(get_db)) -> MarketStatusR
         market_count=len(markets),
         status="ok",
     )
+
+
+@router.get("/matchups")
+async def get_sports_matchups(
+    league: Optional[str] = Query(None, description="Filter: all, mlb, nfl, nba, cfb"),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Returns today's and upcoming head-to-head sports matchups (MLB, NFL, NBA Preseason, CFB)
+    with matched live/final game score state from ESPN/MLB scoreboards.
+    """
+    try:
+        scoreboards = await fetch_scoreboards()
+    except Exception as e:
+        logger.warning(f"Failed to fetch scoreboards for matchups: {e}")
+        scoreboards = []
+
+    today = datetime.now().date()
+    start_date = today - timedelta(days=2)
+    date_regex = '|'.join([(start_date + timedelta(days=i)).isoformat() for i in range(10)])
+
+    # Query active game markets, excluding derivative props (totals, spreads, touchdowns, etc.)
+    q = select(Market).where(
+        Market.is_active == True,
+        or_(
+            Market.slug.like('mlb%'),
+            Market.slug.like('nfl%'),
+            Market.slug.like('cfb%'),
+            Market.slug.like('nba%'),
+        ),
+        not_(Market.slug.like('%-total-%')),
+        not_(Market.slug.like('%-spread-%')),
+        not_(Market.slug.like('%-anytime-td-%')),
+        not_(Market.slug.like('%-recyd-%')),
+        not_(Market.slug.like('%-pyd-%')),
+        not_(Market.slug.like('%-ryd-%')),
+        not_(Market.slug.like('%-nrfi%')),
+        not_(Market.slug.like('%-1h-%')),
+        Market.slug.op('~')(date_regex)
+    ).order_by(Market.volume_24h.desc().nullslast())
+
+    result = await db.execute(q)
+    markets = result.scalars().all()
+
+    if len(markets) < 5:
+        fallback_q = select(Market).where(
+            Market.is_active == True,
+            or_(
+                Market.slug.like('mlb%'),
+                Market.slug.like('nfl%'),
+                Market.slug.like('cfb%'),
+                Market.slug.like('nba%'),
+            ),
+            not_(Market.slug.like('%-total-%')),
+            not_(Market.slug.like('%-spread-%')),
+            not_(Market.slug.like('%-anytime-td-%')),
+            not_(Market.slug.like('%-recyd-%')),
+            not_(Market.slug.like('%-pyd-%')),
+            not_(Market.slug.like('%-ryd-%')),
+            not_(Market.slug.like('%-nrfi%')),
+            not_(Market.slug.like('%-1h-%')),
+        ).order_by(Market.volume_24h.desc().nullslast()).limit(50)
+        fallback_res = await db.execute(fallback_q)
+        markets = fallback_res.scalars().all()
+
+    matchups_list = []
+    for m in markets:
+        slug = m.slug or ""
+        lg = "MLB" if slug.startswith("mlb") else "NFL" if slug.startswith("nfl") else "CFB" if slug.startswith("cfb") else "NBA"
+        display_league = (
+            "MLB Baseball" if lg == "MLB"
+            else "NFL Football" if lg == "NFL"
+            else "College Football" if lg == "CFB"
+            else "NBA Preseason"
+        )
+
+        gm = match_game(m.title, scoreboards)
+        game_data = None
+        state_priority = 2
+        if gm:
+            game_data = {
+                "away": gm["away"]["name"],
+                "away_score": gm["away"]["score"],
+                "home": gm["home"]["name"],
+                "home_score": gm["home"]["score"],
+                "state": gm["state"],
+                "detail": gm["detail"],
+                "start": gm.get("start"),
+            }
+            if gm["state"] == "in":
+                state_priority = 0
+            elif gm["state"] == "pre":
+                state_priority = 1
+            else:
+                state_priority = 3
+
+        yes_pct = round(float(m.yes_percentage or 50.0), 1)
+        no_pct = round(100.0 - yes_pct, 1)
+
+        matchups_list.append({
+            "id": m.id,
+            "slug": m.slug,
+            "title": m.title,
+            "category": m.category,
+            "league": lg,
+            "league_display": display_league,
+            "yes_percentage": yes_pct,
+            "no_percentage": no_pct,
+            "volume_24h": float(m.volume_24h or 0.0),
+            "volume_7d": float(m.volume_7d or 0.0),
+            "clob_token_ids": m.clob_token_ids,
+            "is_active": m.is_active,
+            "last_updated": m.last_updated.isoformat() if m.last_updated else None,
+            "game": game_data,
+            "_priority": (state_priority, -(float(m.volume_24h or 0))),
+        })
+
+    matchups_list.sort(key=lambda x: x["_priority"])
+    for item in matchups_list:
+        del item["_priority"]
+
+    counts = {
+        "all": len(matchups_list),
+        "mlb": sum(1 for x in matchups_list if x["league"] == "MLB"),
+        "football": sum(1 for x in matchups_list if x["league"] in ("NFL", "CFB")),
+        "nba": sum(1 for x in matchups_list if x["league"] == "NBA"),
+        "live": sum(1 for x in matchups_list if x.get("game") and x["game"]["state"] == "in"),
+    }
+
+    filtered = matchups_list
+    if league and league.upper() != "ALL":
+        target = league.upper()
+        if target in ("FOOTBALL", "NFL_CFB"):
+            filtered = [x for x in matchups_list if x["league"] in ("NFL", "CFB")]
+        elif target == "LIVE":
+            filtered = [x for x in matchups_list if x.get("game") and x["game"]["state"] == "in"]
+        else:
+            filtered = [x for x in matchups_list if x["league"] == target]
+
+    return {
+        "matchups": filtered,
+        "counts": counts,
+        "total": len(filtered),
+    }
 
 
 async def fetch_price_history_from_clob(

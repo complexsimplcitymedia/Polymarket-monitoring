@@ -1,7 +1,11 @@
-# Environment
+# Environment & Secrets
 .env
-.env.local
-.env.*.local
+.env*
+.env.*
+secrets/*
+!secrets/.gitkeep
+!secrets/.env.example
+!secrets/README.md
 
 # Python
 __pycache__/
@@ -58,3 +62,4 @@ private/
 
 # Large binaries
 Miniconda3-latest-Linux-x86_64.sh
+*.save

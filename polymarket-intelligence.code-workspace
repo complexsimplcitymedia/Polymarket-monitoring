@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../Wolf-Logic-CML/3-MEMORY-PROCESSING"
+		},
+		{
+			"path": "../../../etc/caddy"
 		}
 	]
 }

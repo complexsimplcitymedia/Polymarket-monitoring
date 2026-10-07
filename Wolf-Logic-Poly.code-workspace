@@ -1,0 +1,50 @@
+{
+	"folders": [
+		{
+			"path": "../Wolf-Logic-CML"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../wolf-logic-portal"
+		},
+		{
+			"path": "../wolf-logic-command-center"
+		}
+	],
+	"settings": {
+		"gitlens.ai.largePromptWarningThreshold": 285000,
+		"terminal.integrated.automationProfile.linux": {
+			"path": "/bin/bash",
+			"args": [
+				"-i",
+				"-c",
+				"source /home/wolf/miniconda3/etc/profile.d/conda.sh && conda activate messiah && exec /bin/bash -i"
+			]
+		},
+		"terminal.integrated.profiles.linux": {
+			"bash": {
+				"path": "/bin/bash",
+				"args": [
+					"-i",
+					"-c",
+					"source /home/wolf/miniconda3/etc/profile.d/conda.sh && conda activate messiah && exec /bin/bash -i"
+				]
+			},
+			"bash (messiah)": {
+				"path": "/bin/bash",
+				"args": [
+					"-i",
+					"-c",
+					"source /home/wolf/miniconda3/etc/profile.d/conda.sh && conda activate messiah && exec /bin/bash -i"
+				]
+			}
+		},
+		"terminal.integrated.defaultProfile.linux": "bash (messiah)",
+		"terminal.explorerKind": "external",
+		"python-envs.defaultEnvManager": "ms-python.python:conda",
+		"python-envs.defaultPackageManager": "ms-python.python:conda",
+		"git.ignoreLimitWarning": true
+	}
+}

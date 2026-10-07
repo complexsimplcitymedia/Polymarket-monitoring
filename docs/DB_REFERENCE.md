@@ -27,7 +27,7 @@ query to run.
 5. [State & small tables](#state--small-tables)
    - [app_state](#app_state) · [bet_notes](#bet_notes) · [program_tiers](#program_tiers) · [webui_events](#webui_events)
 6. [Dead / empty tables](#dead--empty-tables)
-   - [news_articles](#news_articles) · [weather_history](#weather_history) · [weather_anomalies](#weather_anomalies)
+   - [news_articles](#news_articles)
 7. [Anomalies](#anomalies)
 8. [UNVERIFIED](#unverified)
 
@@ -50,7 +50,7 @@ Run any of these with `docker exec polymarket-db psql -U wolf -d poly_db -c "<sq
 | Source health (last probe per source) | `SELECT DISTINCT ON (source) sport, source, ok, status, ms, live_games, updated_age_s, error, created_at FROM source_probes ORDER BY source, created_at DESC;` |
 | Market by slug | `SELECT id, title, volume_7d, yes_percentage FROM markets WHERE slug = '<slug>';` |
 | Top markets by 7d volume | `SELECT title, volume_7d, yes_percentage FROM markets WHERE is_active ORDER BY volume_7d DESC LIMIT 20;` |
-| Weather opportunity rows | `SELECT title, true_probability, market_price, edge, created_at FROM opportunities WHERE category='WEATHER' ORDER BY created_at DESC LIMIT 20;` |
+| Opportunity counts by category | `SELECT category, count(*) FROM opportunities GROUP BY category ORDER BY category;` |
 | Unsettled predictions | `SELECT sport, game_id, question, predictor, probability, game_time FROM predictions WHERE outcome IS NULL ORDER BY game_time;` |
 | Active alerts | `SELECT created_at, kind, sport, team, title, gap, status FROM alerts WHERE status='active' ORDER BY created_at DESC;` |
 | App state flag | `SELECT key, value, updated_at FROM app_state;` |
@@ -59,8 +59,8 @@ Run any of these with `docker exec polymarket-db psql -U wolf -d poly_db -c "<sq
 
 ## Table inventory & row counts
 
-17 tables, all in `public`. Counts below are `pg_stat_user_tables.n_live_tup`
-estimates captured 2026-10-04 21:52 UTC.
+15 tables remain in `public`. Counts below are `pg_stat_user_tables.n_live_tup`
+estimates captured 2026-10-04 21:52 UTC, before the unused weather tables were dropped.
 
 | Table | Est. rows | Freshness (max ts) | Writer |
 |---|---:|---|---|
@@ -79,8 +79,10 @@ estimates captured 2026-10-04 21:52 UTC.
 | `program_tiers` | 10 | 11:44:53 | `src/backend/program_tiers.py`, `routes/tiers.py` |
 | `app_state` | 1 | 21:49:07 | `src/backend/tasks/update_markets.py` |
 | `news_articles` | 0 | — | **none** (insert path errors — see below) |
-| `weather_anomalies` | 0 | — | **none** (declared-but-unused) |
-| `weather_history` | 0 | — | **none** (declared-but-unused) |
+
+On 2026-10-05, the empty `weather_history` and `weather_anomalies` tables were
+dropped. The scheduled opportunity hunter now persists parlays only; existing
+`WEATHER` opportunities were deleted.
 
 ---
 
@@ -378,21 +380,13 @@ an APScheduler job every 5 min when `ENABLE_EXTRAS=true` (`config.py:74`, defaul
 
 **Key:** `opportunities_pkey (id)`.
 **Indexes:** `idx_opportunities_edge`, `idx_opportunities_created`, `idx_opportunities_status`.
-**Freshness:** max 19:59:17. All 191 rows `status='DETECTED'`.
-**Composition:** WEATHER 105 (newest 2026-10-04 19:59), PARLAY 86 (newest 2026-10-03).
-**LINKAGE — all 191 rows are orphans:** `opportunities.market_id` resolves to
-`markets.id` for **0 of 191** rows. Weather rows use synthetic ids (`benchmark_houston`,
-`benchmark_dc`, `benchmark_nyc`); parlay rows use `parlay_2` etc.
-
-> The "weather is dead" note is **half wrong**. The weather *writer* is alive
-> (rows written today, job firing every 5 min). The weather *signal* is dead —
-> the rows are out of scope per `docs/PLATFORM_RULES.md` and link to no real
-> market, so nothing can trade them. Dead signal, live writer.
+The counts below are a 2026-10-04 snapshot: 191 rows total, including 105
+`WEATHER` and 86 `PARLAY`; none of their `market_id` values resolved to
+`markets.id`. On 2026-10-05 the `WEATHER` rows were deleted and the scheduled
+opportunity scanner was changed to persist parlays only.
 
 ```sql
 SELECT category, count(*), max(created_at) FROM opportunities GROUP BY 1 ORDER BY 2 DESC;
-SELECT title, true_probability, market_price, edge, expected_value_pct, created_at
-FROM opportunities WHERE category='WEATHER' ORDER BY created_at DESC LIMIT 20;
 ```
 
 ### predictions
@@ -545,38 +539,28 @@ time zone`. Result: `GET /api/news/{market_id}` returns HTTP 500 on every call
 (reproduced), so the NewsFeed view is dead. Fix is either strip tzinfo before
 insert or migrate the column to `timestamptz`.
 
-### weather_history · weather_anomalies
-
-**0 rows, no writer exists in source.** Both are declared in `models.py` (with
-indexes — `weather_history` even has `idx_weather_city_date UNIQUE (city_key, date_str)`)
-but nothing ever writes them. Vestigial declarations. Safe to treat as non-existent
-until a writer appears.
-
 ---
 
 ## Anomalies
 
 1. **`news_articles` insert is broken** → `GET /api/news/{id}` = HTTP 500 always.
    Naive/aware datetime mismatch. Highest-impact data defect in the DB.
-2. **All 191 `opportunities` rows are orphaned** — 0/191 `market_id` values resolve
-   to `markets.id`. Weather uses synthetic `benchmark_*` ids, parlay uses `parlay_*`.
-   Nothing here is tradeable as written.
-3. **Weather writer alive, weather signal dead.** The 5-min `opportunity_hunter`
-   job fires and writes WEATHER rows (8 in the last 24 h), yet
-   `docs/PLATFORM_RULES.md` puts weather out of scope. Two truths, not a contradiction.
-4. **`game_snapshots` has no uniqueness on game state.** 1,714 rows collapse to
+2. **At the 2026-10-04 snapshot, opportunities were orphaned** — their `market_id`
+   values did not resolve to `markets.id`. The 106 `WEATHER` rows were subsequently
+   deleted; the scheduled scanner now persists parlays only.
+3. **`game_snapshots` has no uniqueness on game state.** 1,714 rows collapse to
    only **64 distinct `(league, game_id, home_score, away_score)`** states — the
    table is append-every-poll by design, so *repeated identical scores dominate*.
    Any "how many snapshots" count heavily overstates distinct game states. Don't
    treat row count as signal count.
-5. **`markets.last_updated` is per-row, not global.** The top-volume market's row
+4. **`markets.last_updated` is per-row, not global.** The top-volume market's row
    is 13 days stale while the table max is today (see `markets` above).
-6. **`outcomes_json` is NULL** on at least some rows (the top-volume row included),
+5. **`outcomes_json` is NULL** on at least some rows (the top-volume row included),
    so it cannot be relied on for outcome parsing without a null check.
-7. **No FK constraints anywhere** — all relations (`price_history.market_id` →
+6. **No FK constraints anywhere** — all relations (`price_history.market_id` →
    `markets.id`, `predictions.market_id` → `markets.id`, etc.) are logical only.
    Nothing prevents orphans, and orphans exist (see #2).
-8. **Duplicate/overlapping indexes on `news_articles`:** both `ix_news_articles_market_id`
+7. **Duplicate/overlapping indexes on `news_articles`:** both `ix_news_articles_market_id`
    and `idx_news_market_id` index `market_id`, plus `idx_news_market_published`
    and `idx_news_published_at`. Redundant, harmless while empty, worth collapsing
    if the table ever fills.
@@ -594,8 +578,6 @@ until a writer appears.
 - **Which process writes `predictions` rows** beyond `src/backend/sports/cfb.py` —
   that is the only source hit (`predictor='cfb_scanner'`), but no running service
   was confirmed executing it; rows stopped at 05:13 today.
-- **Intent for `weather_history` / `weather_anomalies`** — zero rows, no writer;
-  whether they are planned schema or abandoned is not stated anywhere.
 - **Whether the `ts-london`/`ncaa_*` columns are currently populated** — the sampled
   newest `game_snapshots` row had `ts_score` and `ncaa_score` NULL and only
   `poly_*` + `espn_ms` populated; broader coverage was not measured.

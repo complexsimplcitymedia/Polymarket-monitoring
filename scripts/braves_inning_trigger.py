@@ -32,7 +32,10 @@ sys.path.insert(0, "/home/wolf/Polymarket-monitoring")
 import httpx
 from dotenv import load_dotenv
 
-load_dotenv("/home/wolf/Polymarket-monitoring/.env")
+_env_file = "/home/wolf/Polymarket-monitoring/secrets/.env"
+if not os.path.exists(_env_file):
+    _env_file = "/home/wolf/Polymarket-monitoring/.env"
+load_dotenv(_env_file)
 
 logging.basicConfig(
     level=logging.INFO,

@@ -1,3 +1,4 @@
+import "./server.js";
 // Real-time layer: poll live games and prices, write a reading to SQL whenever something changed.
 import { candidateSlugs, outcomePrices, priceFor } from "./names.js";
 import { LEAGUES, fetchScoreboards, fetchSummary, getJson, homeWinProb, boxColumns, polyColumns, timed, footballWeek } from "./espn.js";

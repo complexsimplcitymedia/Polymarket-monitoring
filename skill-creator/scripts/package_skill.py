@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """
 Skill Packager - Creates a distributable .skill file of a skill folder
 

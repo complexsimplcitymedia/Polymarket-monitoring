@@ -14,7 +14,8 @@ from typing import Any, Optional
 
 import httpx
 
-ESPN = "https://site.api.espn.com/apis/site/v2/sports/football"
+ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports"
+ESPN = f"{ESPN_BASE}/football"
 MLB = "https://statsapi.mlb.com/api/v1/schedule"
 CACHE_SECONDS = 30
 
@@ -82,8 +83,10 @@ async def fetch_scoreboards() -> list[dict[str, Any]]:
                 (f"{ESPN}/college-football/scoreboard", {"groups": "80", "limit": 200}, _espn_games),
                 (f"{ESPN}/college-football/scoreboard", {"groups": "81", "limit": 200}, _espn_games),
                 (f"{ESPN}/nfl/scoreboard", {}, _espn_games),
+                (f"{ESPN_BASE}/basketball/nba/scoreboard", {}, _espn_games),
+                (f"{ESPN_BASE}/baseball/mlb/scoreboard", {}, _espn_games),
                 (MLB, {"sportId": 1, "startDate": (today - timedelta(days=1)).isoformat(),
-                       "endDate": (today + timedelta(days=1)).isoformat(), "hydrate": "team,linescore"}, _mlb_games),
+                       "endDate": (today + timedelta(days=2)).isoformat(), "hydrate": "team,linescore"}, _mlb_games),
             ]
             results = await asyncio.gather(*[client.get(u, params=p) for u, p, _ in urls], return_exceptions=True)
         games: list[dict[str, Any]] = []

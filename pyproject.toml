@@ -27,6 +27,7 @@ dependencies = [
     "cryptography>=50.0.1",
     "polymarket-us>=0.1.2",
     "hostinger-mail-api>=1.18.0",
+    "httpx-socks>=0.9.0",
 ]
 
 [project.optional-dependencies]
