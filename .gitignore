@@ -63,3 +63,10 @@ private/
 # Large binaries
 Miniconda3-latest-Linux-x86_64.sh
 *.save
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Codacy analysis artifacts
+.codacy/

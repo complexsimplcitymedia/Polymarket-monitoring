@@ -66,7 +66,7 @@ PG = {
     "port": int(os.getenv("POLY_PG_PORT", "5433")),
     "dbname": "poly_db",
     "user": "wolf",
-    "password": os.getenv("POLY_PG_PASSWORD") or _ENV.get("POLY_PG_PASSWORD") or "wolfpoly2026",
+    "password": os.getenv("POLY_PG_PASSWORD") or _ENV.get("POLY_PG_PASSWORD", ""),
 }
 
 

@@ -63,8 +63,6 @@ const ENDPOINTS: EndpointDef[] = [
     { id: 'sports_cfb', method: 'GET', path: '/api/scanners/cfb/live', label: 'CFB Live', needsMarket: false },
     { id: 'sports_nfl', method: 'GET', path: '/api/scanners/nfl/board', label: 'NFL Board', needsMarket: false },
     { id: 'sports_nba', method: 'GET', path: '/api/scanners/nba/board', label: 'NBA Board', needsMarket: false },
-    { id: 'ai_status', method: 'GET', path: '/api/ai/status', label: 'AI Status', needsMarket: false },
-    { id: 'ai_models', method: 'GET', path: '/api/ai/models', label: 'AI Models', needsMarket: false },
     { id: 'account_summary', method: 'GET', path: '/api/account/summary', label: 'Account Summary', needsMarket: false },
     { id: 'polymarket_status', method: 'GET', path: '/api/status/polymarket', label: 'Polymarket Status', needsMarket: false },
     { id: 'webhook_recent', method: 'GET', path: '/api/webhooks/openwebui/recent', label: 'OpenWebUI Recent', needsMarket: false },

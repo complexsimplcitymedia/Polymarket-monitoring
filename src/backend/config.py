@@ -4,8 +4,10 @@ Application configuration using Pydantic Settings.
 Loads environment variables from .env file.
 """
 
+import os
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +23,17 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./polymarket.db"
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _adjust_database_url_for_host(cls, v: str) -> str:
+        """Remap container internal hostname 'db' to 127.0.0.1:5433 when executing directly on host."""
+        if not os.path.exists("/.dockerenv"):
+            if "@db:5432" in v:
+                return v.replace("@db:5432", "@127.0.0.1:5433")
+            if "@db/" in v:
+                return v.replace("@db/", "@127.0.0.1:5433/")
+        return v
 
     # News API
     NEWS_API_KEY: str = ""
@@ -63,9 +76,6 @@ class Settings(BaseSettings):
     SMTP_STARTTLS: bool = True
     ALERT_EMAIL_TO: str = ""
 
-    # The AI inside the app (NanoGPT, OpenAI-compatible). Leave the key empty to keep the AI off.
-    NANOGPT_API_KEY: str = ""
-    NANOGPT_BASE_URL: str = "https://nano-gpt.com/api/v1"
 
     # Poll live college football every minute and flag price-vs-game-state gaps
     ENABLE_CFB_SCANNER: bool = True

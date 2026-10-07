@@ -43,19 +43,23 @@ def _n(value: Any) -> float:
 
 
 def _fetch_trades(hours: float) -> list[dict]:
-    client = _client()
     out: list[dict] = []
-    cursor = None
-    for _ in range(10):
-        params: dict[str, Any] = {"limit": 100}
-        if cursor:
-            params["cursor"] = cursor
-        page = client.portfolio.activities(params)
-        batch = page.get("activities", [])
-        out += batch
-        cursor = page.get("nextCursor")
-        if page.get("eof") or not cursor or not batch:
-            break
+    try:
+        client = _client()
+        cursor = None
+        for _ in range(10):
+            params: dict[str, Any] = {"limit": 100}
+            if cursor:
+                params["cursor"] = cursor
+            page = client.portfolio.activities(params)
+            batch = page.get("activities", [])
+            out += batch
+            cursor = page.get("nextCursor")
+            if page.get("eof") or not cursor or not batch:
+                break
+    except Exception as exc:
+        print(f"[analysis_bundle] Note: Polymarket US trade fetch skipped ({exc})", file=sys.stderr)
+        return []
 
     cut = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
     trades = []
