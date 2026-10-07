@@ -25,6 +25,24 @@ from src.backend.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Optional London-egress proxy for CLOB order traffic.
+# py_clob_client uses a module-level httpx.Client. If TRADE_SOCKS_PROXY is set,
+# swap it for one that routes through the SOCKS5 sidecar.
+if settings.TRADE_SOCKS_PROXY:
+    try:
+        import httpx
+        from httpx_socks import SyncProxyTransport
+        from py_clob_client.http_helpers import helpers as clob_helpers
+
+        proxy_url = settings.TRADE_SOCKS_PROXY
+        transport = SyncProxyTransport.from_url(proxy_url)
+        clob_helpers._http_client = httpx.Client(
+            http2=True, transport=transport, timeout=30.0
+        )
+        logger.info(f"CLOB order traffic routed through SOCKS5 proxy: {proxy_url}")
+    except Exception as e:
+        logger.error(f"Failed to configure CLOB SOCKS5 proxy: {e}")
+
 
 class PolymarketTradingService:
     """Service for interacting directly with Polymarket CLOB."""

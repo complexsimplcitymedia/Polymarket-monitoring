@@ -19,6 +19,8 @@ from src.backend.polymarket.schemas import MarketResponse
 from src.backend.config import settings
 from src.backend.polymarket.schemas import MarketResponse
 
+from src.backend.polymarket.data_api_v2 import fetch_trades as data_api_fetch_trades
+
 logger = logging.getLogger(__name__)
 
 # Polymarket API endpoints
@@ -284,30 +286,12 @@ class PolymarketClient:
 
     async def fetch_trades(self, market_slug: str, limit: int = 500) -> list[dict]:
         """
-        Fetch recent trades for a market using Data API.
-        
-        Args:
-            market_slug: The market slug (e.g. "will-ethereum-reach-6000-in-january-2026").
-            limit: Number of trades to fetch.
-            
-        Returns:
-            List of trade dictionaries.
+        Fetch recent trades for a market using Data API v2.
         """
         try:
-            client = await self._get_client()
-            response = await client.get(
-                "https://data-api.polymarket.com/trades",
-                params={"market": market_slug, "limit": limit}
-            )
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.warning(f"Data API returned status {response.status_code}: {response.text}")
-                return []
-                
+            return await data_api_fetch_trades(market_slug, limit=limit)
         except Exception as e:
-            logger.error(f"Error fetching trades from Data API: {e}")
+            logger.error(f"Error fetching trades from Data API v2: {e}")
             return []
 
 

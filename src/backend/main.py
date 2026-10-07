@@ -23,7 +23,7 @@ from src.backend.config import settings
 from src.backend.database import close_db, init_db
 from src.backend.polymarket.client import polymarket_client
 from src.backend.news.aggregator import news_aggregator
-from src.backend.routes import account, ai, alerts, football, markets, mlb, news, scores, sports, tiers, users, webhook
+from src.backend.routes import account, ai, alerts, football, markets, mlb, news, scores, sports, tiers, users, webhook, status
 from src.backend.tasks.update_markets import get_scheduler, update_top_markets
 
 # Configure logging
@@ -100,6 +100,7 @@ app.include_router(scores.router)
 app.include_router(alerts.router)
 app.include_router(ai.router)
 app.include_router(webhook.router)
+app.include_router(status.router)
 
 # Extras (weather, parlays, debate floor, trading) are kept but isolated from the sports core.
 if settings.ENABLE_EXTRAS:

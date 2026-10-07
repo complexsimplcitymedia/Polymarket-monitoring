@@ -5,10 +5,9 @@ import {
     Wallet,
     Trophy,
     Activity,
-    User,
     MessageSquare,
-    Flame,
     Zap,
+    Gauge,
 } from 'lucide-react'
 import { MarketList } from './components/MarketList'
 import PriceChart from './components/PriceChart'
@@ -21,25 +20,27 @@ import { PriceMovement } from './components/PriceMovement'
 import { TimeframeSelector } from './components/TimeframeSelector'
 import { SearchBar } from './components/SearchBar'
 import DebateFloor from './components/DebateFloor'
-import UserDashboard from './components/UserDashboard'
 import AccountPage from './components/AccountPage'
-import AiPanel from './components/AiPanel'
 import LiveStream from './components/LiveStream'
 import TeamsPage from './components/TeamsPage'
-import { AlphaTerminal } from './components/AlphaTerminal'
+import { LatencyPanel } from './components/LatencyPanel'
+import { GlobalLatencyTicker } from './components/GlobalLatencyTicker'
+import { CommandDashboard } from './components/CommandDashboard'
 import { useMarketStore } from './stores/marketStore'
 import { useMarkets } from './hooks/useMarkets'
 import { AuthGate } from './components/AuthGate'
 import { useAuthStore } from './stores/authStore'
 import { marketSides } from './utils/sides'
-import { ExternalLink, LogOut, Bot } from 'lucide-react'
+import { ExternalLink, LogOut, LayoutDashboard } from 'lucide-react'
+
 
 function App() {
     const { selectedMarket, setSelectedMarket } = useMarketStore()
     const { data: marketsData } = useMarkets()
     const { logout, user } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'news' | 'whales' | 'holders' | 'stats' | 'debate'>('news')
-    const [activeView, setActiveView] = useState<'markets' | 'alpha' | 'user' | 'account' | 'teams' | 'ai' | 'live'>('account')
+    const [activeView, setActiveView] = useState<'dashboard' | 'markets' | 'teams' | 'account' | 'latency'>('dashboard')
+
 
     useEffect(() => {
         const list = marketsData?.markets
@@ -115,8 +116,11 @@ function App() {
 
                     {/* Navigation View Switcher & Search */}
                     <div className="flex-1 flex flex-col sm:flex-row items-center justify-end gap-3 w-full">
+                        {/* Omni-Present Multi-Feed Latency Ticker */}
+                        <GlobalLatencyTicker />
+
                         {/* Global Metrics Strip */}
-                        <div className="hidden xl:flex items-center gap-4 px-3.5 py-1.5 rounded-xl bg-surface-900/70 border border-white/10 text-xs font-mono shadow-inner">
+                        <div className="hidden 2xl:flex items-center gap-4 px-3.5 py-1.5 rounded-xl bg-surface-900/70 border border-white/10 text-xs font-mono shadow-inner">
                             <div>
                                 <span className="text-slate-500">24H VOL: </span>
                                 <span className="text-emerald-400 font-bold">
@@ -133,37 +137,15 @@ function App() {
                         {/* View Switcher Pill */}
                         <div className="flex items-center gap-1 bg-surface-900/95 border border-white/15 rounded-xl p-1 shadow-2xl">
                             <button
-                                onClick={() => setActiveView('account')}
+                                onClick={() => setActiveView('dashboard')}
                                 className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'account'
-                                        ? 'bg-emerald-500/30 text-white border border-emerald-500/50 shadow-lg shadow-emerald-500/15'
-                                        : 'text-slate-400 hover:text-white'
-                                }`}
-                            >
-                                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                                My Account
-                            </button>
-                            <button
-                                onClick={() => setActiveView('teams')}
-                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'teams'
-                                        ? 'bg-amber-500/30 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
-                                        : 'text-slate-400 hover:text-white'
-                                }`}
-                            >
-                                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                                Teams
-                            </button>
-                            <button
-                                onClick={() => setActiveView('ai')}
-                                className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'ai'
+                                    activeView === 'dashboard'
                                         ? 'bg-primary-500/30 text-white border border-primary-500/50 shadow-lg shadow-primary-500/15'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
-                                <Bot className="w-3.5 h-3.5 text-primary-400" />
-                                AI
+                                <LayoutDashboard className="w-3.5 h-3.5 text-primary-400" />
+                                Dashboard
                             </button>
                             <button
                                 onClick={() => setActiveView('markets')}
@@ -177,26 +159,37 @@ function App() {
                                 Markets & Charts
                             </button>
                             <button
-                                onClick={() => setActiveView('user')}
+                                onClick={() => setActiveView('teams')}
                                 className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'user'
-                                        ? 'bg-indigo-500/30 text-white border border-indigo-500/50 shadow-lg shadow-indigo-500/15'
+                                    activeView === 'teams'
+                                        ? 'bg-amber-500/30 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
-                                <User className="w-3.5 h-3.5 text-indigo-400" />
-                                Whale Lab
+                                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                                Teams
                             </button>
                             <button
-                                onClick={() => setActiveView('alpha')}
+                                onClick={() => setActiveView('account')}
                                 className={`px-4 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                                    activeView === 'alpha'
-                                        ? 'bg-gradient-to-r from-amber-500/40 via-primary-500/40 to-accent-500/40 text-white border border-amber-500/50 shadow-lg shadow-amber-500/15'
+                                    activeView === 'account'
+                                        ? 'bg-emerald-500/30 text-white border border-emerald-500/50 shadow-lg shadow-emerald-500/15'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
-                                <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                Extras (Weather)
+                                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                                My Account
+                            </button>
+                            <button
+                                onClick={() => setActiveView('latency')}
+                                className={`px-3.5 py-1.5 text-xs font-bold font-display rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeView === 'latency'
+                                        ? 'bg-cyan-500/30 text-white border border-cyan-500/50 shadow-lg shadow-cyan-500/15'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+                                Latency
                             </button>
                         </div>
 
@@ -404,12 +397,11 @@ function App() {
                     </div>
                 )}
 
-                {activeView === 'alpha' && <AlphaTerminal />}
-
-                {activeView === 'user' && <UserDashboard />}
+                {activeView === 'dashboard' && <CommandDashboard />}
                 {activeView === 'account' && <AccountPage />}
                 {activeView === 'teams' && <TeamsPage />}
-                {activeView === 'ai' && <AiPanel />}
+                {activeView === 'latency' && <LatencyPanel />}
+
             </main>
 
             {/* Polished Footer with CSMP Branding */}

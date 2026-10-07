@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Build the deepseek-r1 analysis array from the trader's window + market temperature.
 
 Joins three sources into one array a local model can reason over:

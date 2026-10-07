@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 import asyncio
 import os
 import sys

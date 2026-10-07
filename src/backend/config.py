@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Optional: route CLOB order traffic through a London-egress SOCKS5 proxy.
+    # Format: socks5h://host:port (set in .env; no auth). Example:
+    # TRADE_SOCKS_PROXY=socks5h://polymarket-ts-london-trade:1080
+    TRADE_SOCKS_PROXY: str = ""
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000

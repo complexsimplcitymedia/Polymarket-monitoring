@@ -1062,47 +1062,31 @@ async def get_market_trades(
 
                                 try:
                                     response = await client.get(
-                                        "https://data-api.polymarket.com/positions",
+                                        "https://data-api.polymarket.com/v2/positions",
                                         params={"user": address, "limit": "500"},
                                     )
                                     if response.status_code == 200:
-                                        positions = response.json()
+                                        payload = response.json()
+                                        positions = payload.get("data", []) if isinstance(payload, dict) else payload
                                 except Exception:
                                     positions = []
 
                                 try:
                                     response = await client.get(
-                                        "https://data-api.polymarket.com/closed-positions",
-                                        params={"user": address, "limit": "500"},
-                                    )
-                                    if response.status_code == 200:
-                                        closed_positions = response.json()
-                                except Exception:
-                                    closed_positions = []
-
-                                try:
-                                    response = await client.get(
-                                        "https://data-api.polymarket.com/value",
+                                        "https://data-api.polymarket.com/v2/value",
                                         params={"user": address},
                                     )
                                     if response.status_code == 200:
                                         payload = response.json()
-                                        if isinstance(payload, list) and payload:
-                                            value_total = _parse_float(
-                                                payload[0].get("value") or 0
-                                            )
+                                        rows = payload.get("data", []) if isinstance(payload, dict) else payload
+                                        if isinstance(rows, list) and rows:
+                                            value_total = _parse_float(rows[0].get("value") or 0)
                                 except Exception:
                                     value_total = 0.0
 
                             positions = positions if isinstance(positions, list) else []
-                            closed_positions = (
-                                closed_positions
-                                if isinstance(closed_positions, list)
-                                else []
-                            )
                             global_pnl, global_roi, total_balance = _compute_global_stats(
-                                positions,
-                                closed_positions,
+                                positions, []
                             )
                             if value_total > 0:
                                 total_balance = value_total
@@ -1169,8 +1153,8 @@ async def get_market_holders(
         async with httpx.AsyncClient(timeout=15.0) as client:
             # 1. Fetch Holders
             response = await client.get(
-                "https://data-api.polymarket.com/holders",
-                params={"market": condition_id}
+                "https://data-api.polymarket.com/v2/holders",
+                params={"condition": condition_id}
             )
             
             if response.status_code != 200:
@@ -1179,14 +1163,21 @@ async def get_market_holders(
                 
             data = response.json()
             
+            # v2 response is wrapped in { data: [...] }
+            holder_rows = data.get("data", []) if isinstance(data, dict) else data
+            if not isinstance(holder_rows, list):
+                holder_rows = []
+            
             # Extract unique addresses to fetch specific stats
             # We focus on the top holders to minimize API calls
             all_holders = []
-            for token_data in data:
-                token_holders = token_data.get("holders", [])
-                for h in token_holders:
-                    h["outcomeIndex"] = token_data.get("dummy", h.get("outcomeIndex")) # preserve outcome index
-                    all_holders.append(h)
+            for h in holder_rows:
+                if not isinstance(h, dict):
+                    continue
+                # Normalize snake_case fields back to camelCase expectations
+                h.setdefault("proxyWallet", h.get("proxy_wallet"))
+                h.setdefault("outcomeIndex", h.get("outcome_index"))
+                all_holders.append(h)
 
             # Deduplicate by address for fetching stats, but keep references
             unique_addresses = {h["proxyWallet"] for h in all_holders if h.get("proxyWallet")}
@@ -1210,58 +1201,52 @@ async def get_market_holders(
             user_positions_map: dict[str, list] = {}
 
             async def fetch_positions_only(address: str):
-                """Lightweight call — only /positions (for market PnL)."""
+                """Lightweight call — only /v2/positions (for market PnL)."""
                 try:
                     r = await client.get(
-                        "https://data-api.polymarket.com/positions",
+                        "https://data-api.polymarket.com/v2/positions",
                         params={"user": address, "limit": "500"},
                     )
                     if r.status_code == 200:
-                        return address, r.json() if isinstance(r.json(), list) else []
+                        payload = r.json()
+                        rows = payload.get("data", []) if isinstance(payload, dict) else payload
+                        return address, rows if isinstance(rows, list) else []
                 except Exception:
                     pass
                 return address, []
 
             async def fetch_full_stats(address: str):
-                """Heavy call — /positions + /closed-positions + /value."""
+                """Heavy call — /v2/positions + /v2/value."""
                 positions: list = []
-                closed_positions: list = []
                 value_total = 0.0
 
                 try:
                     r = await client.get(
-                        "https://data-api.polymarket.com/positions",
+                        "https://data-api.polymarket.com/v2/positions",
                         params={"user": address, "limit": "500"},
                     )
                     if r.status_code == 200:
-                        positions = r.json() if isinstance(r.json(), list) else []
+                        payload = r.json()
+                        positions = payload.get("data", []) if isinstance(payload, dict) else payload
+                        positions = positions if isinstance(positions, list) else []
                 except Exception:
                     pass
 
                 try:
                     r = await client.get(
-                        "https://data-api.polymarket.com/closed-positions",
-                        params={"user": address, "limit": "500"},
-                    )
-                    if r.status_code == 200:
-                        closed_positions = r.json() if isinstance(r.json(), list) else []
-                except Exception:
-                    pass
-
-                try:
-                    r = await client.get(
-                        "https://data-api.polymarket.com/value",
+                        "https://data-api.polymarket.com/v2/value",
                         params={"user": address},
                     )
                     if r.status_code == 200:
                         payload = r.json()
-                        if isinstance(payload, list) and payload:
-                            value_total = _parse_float(payload[0].get("value") or 0)
+                        rows = payload.get("data", []) if isinstance(payload, dict) else payload
+                        if isinstance(rows, list) and rows:
+                            value_total = _parse_float(rows[0].get("value") or 0)
                 except Exception:
                     pass
 
                 global_pnl, global_roi, _ = _compute_global_stats(
-                    positions, closed_positions
+                    positions, []
                 )
                 total_balance = value_total if value_total > 0 else 0.0
 

@@ -23,13 +23,16 @@ import {
     type ParlayOpportunity,
 } from '../hooks/useScanners'
 import {
+    useExecutorPlaceOrder,
+    useExecutorOrderBook,
+    useExecutorStatus,
+} from '../hooks/useExecutor'
+import {
     useOpenOrders,
-    usePlaceOrder,
     useExecuteOpportunity,
     usePlaceParlay,
     useCancelOrder,
     useCancelAllOrders,
-    useOrderBook,
 } from '../hooks/useTrading'
 import { useMarkets } from '../hooks/useMarkets'
 import { WeatherIntelligence } from './WeatherIntelligence'
@@ -52,7 +55,6 @@ export function AlphaTerminal() {
     const analyzeParlay = useAnalyzeParlay()
     const executeOp = useExecuteOpportunity()
     const placeParlay = usePlaceParlay()
-    const placeOrder = usePlaceOrder()
     const cancelOrder = useCancelOrder()
     const cancelAllOrders = useCancelAllOrders()
 
@@ -66,9 +68,13 @@ export function AlphaTerminal() {
     const [clobPrice, setClobPrice] = useState<number>(0.50)
     const [clobSize, setClobSize] = useState<number>(10)
     const [clobSide, setClobSide] = useState<'BUY' | 'SELL'>('BUY')
+    const [clobDryRun, setClobDryRun] = useState<boolean>(true)
     const [executionFeedback, setExecutionFeedback] = useState<string | null>(null)
 
-    const { data: orderBook } = useOrderBook(clobTokenId || null)
+    // Executor (detached Node.js London-egress order lane)
+    const { data: executorStatus } = useExecutorStatus()
+    const placeExecutorOrder = useExecutorPlaceOrder()
+    const { data: executorBook } = useExecutorOrderBook(clobTokenId || null)
 
     const handleRunFullScan = async () => {
         try {
@@ -124,15 +130,27 @@ export function AlphaTerminal() {
         setTimeout(() => setExecutionFeedback(null), 8000)
     }
 
-    const handleQuickOrderSubmit = (e: React.FormEvent) => {
+    const handleQuickOrderSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const estCost = (clobSize * clobPrice).toFixed(2)
-        const mult = (1 / (clobPrice || 0.01)).toFixed(2)
-        const potentialPayout = (clobSize * 1.0).toFixed(2)
-        const netProfit = (parseFloat(potentialPayout) - parseFloat(estCost)).toFixed(2)
-        const roi = (((1 - clobPrice) / clobPrice) * 100).toFixed(0)
-        setExecutionFeedback(`[Multiplier Calculator] $${estCost} stake at ${(clobPrice * 100).toFixed(0)}¢/share (${mult}x multiplier) -> Potential Return $${potentialPayout} (+${roi}% ROI, +$${netProfit} profit). Pure analytical simulation.`)
-        setTimeout(() => setExecutionFeedback(null), 9000)
+        if (!clobTokenId) return
+        try {
+            const result = await placeExecutorOrder.mutateAsync({
+                token_id: clobTokenId,
+                price: clobPrice,
+                size: clobSize,
+                side: clobSide,
+                order_type: 'GTC',
+                dry_run: clobDryRun,
+            })
+            const mode = clobDryRun ? '[DRY RUN]' : '[LIVE EXECUTOR]'
+            if (result.success) {
+                setExecutionFeedback(`${mode} Order submitted in ${result.latency_ms}ms via London-egress executor.`)
+            } else {
+                setExecutionFeedback(`${mode} Order failed: ${result.error || 'unknown'}`)
+            }
+        } catch (err) {
+            setExecutionFeedback(`[EXECUTOR ERROR] ${(err as Error).message}`)
+        }
     }
 
     return (
@@ -701,9 +719,22 @@ export function AlphaTerminal() {
                         <div className="flex items-center justify-between border-b border-white/10 pb-3">
                             <div className="flex items-center gap-2">
                                 <Zap className="w-5 h-5 text-amber-400" />
-                                <h3 className="font-bold text-white text-base">CLOB Odds & Multiplier Calculator</h3>
+                                <h3 className="font-bold text-white text-base">Direct CLOB Executor</h3>
                             </div>
-                            <span className="text-xs font-mono text-surface-400">Pure Analytical Simulation</span>
+                            <div className="flex items-center gap-3">
+                                <span className={`text-[10px] font-mono px-2 py-1 rounded border ${executorStatus?.status === 'READY' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/10 text-amber-300 border-amber-500/30'}`}>
+                                    {executorStatus?.status || 'UNKNOWN'} {executorStatus?.mode || ''}
+                                </span>
+                                <label className="flex items-center gap-2 text-xs text-surface-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={clobDryRun}
+                                        onChange={(e) => setClobDryRun(e.target.checked)}
+                                        className="accent-primary-500"
+                                    />
+                                    Dry Run
+                                </label>
+                            </div>
                         </div>
 
                         <form onSubmit={handleQuickOrderSubmit} className="space-y-4">
@@ -823,13 +854,13 @@ export function AlphaTerminal() {
                                             {(p * 100).toFixed(0)}¢
                                         </button>
                                     ))}
-                                    {orderBook && orderBook.midpoint > 0 && (
+                                    {executorBook && executorBook.midpoint > 0 && (
                                         <button
                                             type="button"
-                                            onClick={() => setClobPrice(orderBook.midpoint)}
+                                            onClick={() => setClobPrice(executorBook.midpoint)}
                                             className="px-2 py-1 rounded bg-primary-950 border border-primary-500/30 text-[10px] font-mono text-primary-300"
                                         >
-                                            Mid {(orderBook.midpoint * 100).toFixed(0)}¢
+                                            Mid {(executorBook.midpoint * 100).toFixed(0)}¢
                                         </button>
                                     )}
                                 </div>
@@ -863,7 +894,7 @@ export function AlphaTerminal() {
                             {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={placeOrder.isPending}
+                                disabled={placeExecutorOrder.isPending}
                                 className={`w-full py-3 rounded-xl font-bold text-xs tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2 ${
                                     clobSide === 'BUY'
                                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30'
@@ -872,9 +903,9 @@ export function AlphaTerminal() {
                             >
                                 <Zap className="w-4 h-4" />
                                 <span>
-                                    {placeOrder.isPending
-                                        ? 'Calculating Returns...'
-                                        : `Calculate Potential Return & Multiplier`}
+                                    {placeExecutorOrder.isPending
+                                        ? 'Firing...'
+                                        : `${clobDryRun ? 'DRY RUN' : 'LIVE'} ${clobSide} via London Executor`}
                                 </span>
                             </button>
                         </form>
@@ -884,9 +915,9 @@ export function AlphaTerminal() {
                     <div className="lg:col-span-6 glass-card rounded-2xl p-6 border border-white/10 space-y-4">
                         <div className="flex items-center justify-between border-b border-white/10 pb-3">
                             <h3 className="font-bold text-white text-base">Polymarket CLOB Book</h3>
-                            {orderBook && (
+                            {executorBook && (
                                 <div className="text-xs font-mono text-surface-400">
-                                    Spread: {(orderBook.spread * 100).toFixed(1)}¢ | Mid: {(orderBook.midpoint * 100).toFixed(1)}¢
+                                    Spread: {(executorBook.spread * 100).toFixed(1)}¢ | Mid: {(executorBook.midpoint * 100).toFixed(1)}¢
                                 </div>
                             )}
                         </div>
@@ -895,7 +926,7 @@ export function AlphaTerminal() {
                             <div className="p-12 text-center text-surface-500 text-xs">
                                 Select a market or enter a Token ID to view the live CLOB depth.
                             </div>
-                        ) : !orderBook ? (
+                        ) : !executorBook ? (
                             <div className="p-12 text-center text-surface-400 text-xs">
                                 Fetching live CLOB depth...
                             </div>
@@ -907,8 +938,8 @@ export function AlphaTerminal() {
                                         Asks (Offers)
                                     </div>
                                     <div className="space-y-1">
-                                        {orderBook.asks && orderBook.asks.length > 0 ? (
-                                            orderBook.asks.slice(-5).reverse().map((ask, i) => (
+                                        {executorBook.asks && executorBook.asks.length > 0 ? (
+                                            executorBook.asks.slice(-5).reverse().map((ask, i) => (
                                                 <div
                                                     key={i}
                                                     className="flex justify-between items-center px-3 py-1 rounded bg-rose-950/20 text-rose-300"
@@ -925,7 +956,7 @@ export function AlphaTerminal() {
 
                                 {/* Midpoint Divider */}
                                 <div className="py-1 px-3 bg-surface-800 text-center text-[11px] font-bold text-primary-300 rounded-lg">
-                                    Midpoint: {(orderBook.midpoint * 100).toFixed(1)}¢
+                                    Midpoint: {(executorBook.midpoint * 100).toFixed(1)}¢
                                 </div>
 
                                 {/* Bids (Buy Orders) */}
@@ -934,8 +965,8 @@ export function AlphaTerminal() {
                                         Bids (Bidders)
                                     </div>
                                     <div className="space-y-1">
-                                        {orderBook.bids && orderBook.bids.length > 0 ? (
-                                            orderBook.bids.slice(0, 5).map((bid, i) => (
+                                        {executorBook.bids && executorBook.bids.length > 0 ? (
+                                            executorBook.bids.slice(0, 5).map((bid, i) => (
                                                 <div
                                                     key={i}
                                                     className="flex justify-between items-center px-3 py-1 rounded bg-emerald-950/20 text-emerald-300"

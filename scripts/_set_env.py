@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Set KEY=value lines in an env file, replacing existing keys and appending new ones.
 
 Usage: _set_env.py <env file> KEY [KEY ...]   (values are read from the environment)

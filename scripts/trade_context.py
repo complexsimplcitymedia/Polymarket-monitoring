@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Assemble a time-window trading-context array for offline (deepseek-r1) analysis.
 
 Pulls the trader's Polymarket US activity for a window, pairs buys/sells into

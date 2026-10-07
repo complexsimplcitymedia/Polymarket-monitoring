@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Parlay leg-by-leg P&L for the trader's Polymarket US account.
 
 Every combo ticket resolves to several legs (one per game/market). The exchange

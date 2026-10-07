@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Run the trigger-discovery analysis over an analysis bundle, one model pass at a time.
 
 Sequential by design: pass 1 on the primary host, then pass 2 on the secondary.

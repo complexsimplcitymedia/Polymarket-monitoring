@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """Send an analysis bundle to local deepseek-r1 and print its reasoning + verdict.
 
 The model is deepseek-r1 on the tailnet (VM3). It is offline/local — no cloud.

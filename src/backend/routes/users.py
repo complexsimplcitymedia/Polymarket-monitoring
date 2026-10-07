@@ -234,51 +234,14 @@ async def _resolve_user(identifier: str) -> UserProfile | None:
 
 
 async def _fetch_positions(user_identifier: str, limit: int) -> list[dict]:
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        try:
-            response = await client.get(
-                f"{DATA_API_BASE}/positions",
-                params={"user": user_identifier, "limit": str(limit)},
-            )
-            if response.status_code != 200:
-                logger.warning(f"Positions API status {response.status_code}: {response.text}")
-                return []
-            data = response.json()
-            if isinstance(data, dict):
-                for key in ("positions", "results", "data", "items"):
-                    if isinstance(data.get(key), list):
-                        return data.get(key, [])
-                return []
-            if isinstance(data, list):
-                return data
-            return []
-        except Exception as e:
-            logger.error(f"Failed to fetch positions: {e}")
-            return []
+    from src.backend.polymarket.data_api_v2 import fetch_positions
+    return await fetch_positions(user_identifier, limit=limit)
 
 
 async def _fetch_closed_positions(user_identifier: str, limit: int) -> list[dict]:
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        try:
-            response = await client.get(
-                f"{DATA_API_BASE}/closed-positions",
-                params={"user": user_identifier, "limit": str(limit)},
-            )
-            if response.status_code != 200:
-                logger.warning(f"Closed positions API status {response.status_code}: {response.text}")
-                return []
-            data = response.json()
-            if isinstance(data, dict):
-                for key in ("positions", "results", "data", "items"):
-                    if isinstance(data.get(key), list):
-                        return data.get(key, [])
-                return []
-            if isinstance(data, list):
-                return data
-            return []
-        except Exception as e:
-            logger.error(f"Failed to fetch closed positions: {e}")
-            return []
+    # v2 folds closed positions into /v2/positions?status=CLOSED
+    from src.backend.polymarket.data_api_v2 import fetch_positions
+    return await fetch_positions(user_identifier, limit=limit, status="CLOSED")
 
 
 def _extract_list_from_response(data: object) -> list[dict]:

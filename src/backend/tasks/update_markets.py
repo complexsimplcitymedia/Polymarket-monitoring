@@ -190,7 +190,7 @@ def get_scheduler():
             max_instances=1,
         )
 
-    # Extras: weather and parlay opportunity hunter every 5 minutes (off unless extras enabled)
+    # Extras: parlay opportunity hunter every 5 minutes (off unless extras enabled)
     from src.backend.config import settings
 
     if settings.ENABLE_EXTRAS:
@@ -200,7 +200,7 @@ def get_scheduler():
             run_opportunity_scan,
             trigger=IntervalTrigger(minutes=5),
             id="opportunity_hunter",
-            name="Scan for weather and parlay mispricings",
+            name="Scan for parlay mispricings",
             replace_existing=True,
         )
 

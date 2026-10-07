@@ -31,28 +31,25 @@ HIGH_WIN_PROB = 0.60  # ESPN also has the leader as a clear favorite while the m
 
 
 def is_trailing_longshot(sig: Signal) -> bool:
-    """College football only: down by a score or less, and the market has it under 20%."""
-    g = sig.game
-    other = g.away if sig.team == g.home.name else g.home
-    clock_out = (g.period >= 4 and g.seconds_left is not None and g.seconds_left < 60
-                 and g.possession == other.name)  # under a minute and the leader holds the ball: they can run it out
-    return (sig.league == "cfb" and -settings.ALERT_TRAIL_MAX_DEFICIT <= sig.margin < 0
-            and sig.market_price < settings.ALERT_TRAIL_MAX_PRICE and not clock_out)
+    """
+    Disabled: Trailing teams with negative point differentials (-7) are deficits, not leaders.
+    Alerts must strictly trigger on actual leaders who are ahead on the scoreboard.
+    """
+    return False
 
 
 def priority_for(sig: Signal, max_price: float, min_lead: int = 5) -> Optional[str]:
     """None when the signal is not alert-worthy; otherwise "normal" or "high".
 
-    Worthy means the team is ahead by at least ``min_lead`` points (default 5) and the
-    market price is below ``max_price`` (default 50%, so the market still has it weighted to lose).
-    It is high priority when ESPN's live win probability also has the team as a clear favorite.
-    A college football team trailing by one score (8 or fewer) and priced under 20% is also worthy.
+    Worthy means the team is AHEAD on the scoreboard by at least ``min_lead`` points (e.g. up by 5-7+ points)
+    and the market price is below ``max_price`` (default 50%, so the market still has the leader mispriced to lose).
+    It is high priority when ESPN's live win probability also has the leader as a clear favorite.
+    Deficits (margin < 0) are strictly disqualified.
     """
-    if is_trailing_longshot(sig):
-        return "normal"
     if sig.margin < min_lead or sig.market_price >= max_price:
         return None
     return "high" if sig.espn_win_prob >= HIGH_WIN_PROB else "normal"
+
 
 
 def confirmed(pending: dict[tuple[str, str], float], key: tuple[str, str], qualifies: bool, now: float, hold: float) -> bool:

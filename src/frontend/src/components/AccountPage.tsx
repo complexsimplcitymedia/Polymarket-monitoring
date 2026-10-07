@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, RefreshCw, Wallet } from 'lucide-react'
 import AlertsPanel from './AlertsPanel'
+import { GlobalLatencyTicker } from './GlobalLatencyTicker'
+import { HeldPositionsWhaleRadar } from './HeldPositionsWhaleRadar'
 
 import { Bet, CycleGroup, LiveInfo, fetchAccount, useAccount, useBets, useSetBetNote } from '../hooks/useAccount'
 
@@ -282,16 +284,17 @@ export default function AccountPage() {
         <div className="max-w-[1920px] mx-auto px-4 py-6 grid grid-cols-12 gap-4">
             {/* Account — left side */}
             <div className="col-span-12 space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-900/60 p-3 rounded-2xl border border-white/10 shadow-lg backdrop-blur-md">
                 <div className="flex items-center gap-2 text-slate-200">
                     <Wallet className="w-5 h-5 text-emerald-400" />
-                    <h1 className="text-base font-bold font-display tracking-tight">My Account</h1>
+                    <h1 className="text-base font-bold font-display tracking-tight">My Account & Cashout Center</h1>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3">
+                    <GlobalLatencyTicker />
                     <button
                         onClick={refresh}
                         disabled={refreshing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-900/90 border border-white/10 text-xs font-mono text-slate-300 hover:text-white disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-900/90 border border-white/10 text-xs font-mono text-slate-300 hover:text-white disabled:opacity-50 transition shadow-inner"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
                         <span>Updated {updated}</span>
@@ -300,6 +303,9 @@ export default function AccountPage() {
             </div>
 
             <AlertsPanel />
+
+            {/* Live Real-Time Whale Radar on Your Held Games */}
+            <HeldPositionsWhaleRadar />
 
             <Section title="Balance & withdrawals">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

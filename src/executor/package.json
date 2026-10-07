@@ -1,0 +1,16 @@
+{
+  "name": "polymarket-executor",
+  "version": "1.0.0",
+  "description": "Detached low-latency order execution lane for Polymarket",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "socks-proxy-agent": "^8.0.4",
+    "tweetnacl": "^1.0.3",
+    "axios": "^1.7.0"
+  }
+}

@@ -17,6 +17,7 @@ from src.backend.models import Market
 from src.backend.extras.debate_agent import build_debate_graph, DebateState, AgentConfig
 from src.backend.routes.markets import fetch_price_history_from_clob
 from src.backend.polymarket.client import polymarket_client
+from src.backend.polymarket.data_api_v2 import fetch_holders, fetch_positions, fetch_value
 from langchain_core.messages import BaseMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
@@ -159,103 +160,60 @@ async def _fetch_top_traders(market: Market, days: int = 7, limit: int = 500, to
     1) Top holders (current positions) for the market (most aligned with "who matters now")
     2) Fallback to top traders by recent traded volume (if holders unavailable)
     """
-    # 1) Try top holders first (these are guaranteed to be positioned on this market)
+            # 1) Try top holders first (v2)
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(
-                "https://data-api.polymarket.com/holders",
-                params={"market": market.id},
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if isinstance(data, list) and data:
-                    holders: list[dict] = []
-                    for token_data in data:
-                        if not isinstance(token_data, dict):
-                            continue
-                        token_holders = token_data.get("holders", [])
-                        if not isinstance(token_holders, list):
-                            continue
-                        for holder in token_holders:
-                            if not isinstance(holder, dict):
-                                continue
-                            address = holder.get("proxyWallet")
-                            if not address:
-                                continue
-                            holders.append(
-                                {
-                                    "address": address,
-                                    "name": holder.get("name") or holder.get("pseudonym"),
-                                    "profile_image": holder.get("profileImage"),
-                                    "position_amount": _parse_float(holder.get("amount") or 0),
-                                    "outcome_index": holder.get("outcomeIndex"),
-                                    "source": "holders",
-                                }
-                            )
+        holder_rows = await fetch_holders(market.id)
+        if holder_rows:
+            holders: list[dict] = []
+            for h in holder_rows:
+                if not isinstance(h, dict):
+                    continue
+                address = h.get("proxyWallet") or h.get("proxy_wallet")
+                if not address:
+                    continue
+                holders.append(
+                    {
+                        "address": address,
+                        "name": h.get("name") or h.get("pseudonym"),
+                        "profile_image": h.get("profileImage") or h.get("profile_image"),
+                        "position_amount": _parse_float(h.get("amount") or 0),
+                        "outcome_index": h.get("outcomeIndex") if h.get("outcomeIndex") is not None else h.get("outcome_index"),
+                        "source": "holders",
+                    }
+                )
 
-                    if holders:
-                        holders.sort(key=lambda x: x.get("position_amount", 0), reverse=True)
-                        top_holders = holders[: max(1, top_n)]
+            if holders:
+                holders.sort(key=lambda x: x.get("position_amount", 0), reverse=True)
+                top_holders = holders[: max(1, top_n)]
 
-                        # Enrich with global stats + portfolio value
-                        async with httpx.AsyncClient(timeout=15.0) as client2:
-                            semaphore = asyncio.Semaphore(8)
+                # Enrich with global stats + portfolio value
+                async with httpx.AsyncClient(timeout=15.0) as client2:
+                    semaphore = asyncio.Semaphore(8)
 
-                            async def enrich(address: str):
-                                async with semaphore:
-                                    positions = []
-                                    closed_positions = []
-                                    value_total = 0.0
+                    async def enrich(address: str):
+                        async with semaphore:
+                            positions = await fetch_positions(address)
+                            value_rows = await fetch_value(address)
+                            value_total = 0.0
+                            if value_rows and isinstance(value_rows, list):
+                                value_total = _parse_float(value_rows[0].get("value") or 0)
 
-                                    try:
-                                        r = await client2.get(
-                                            "https://data-api.polymarket.com/positions",
-                                            params={"user": address, "limit": "500"},
-                                        )
-                                        if r.status_code == 200:
-                                            positions = r.json()
-                                    except Exception:
-                                        positions = []
+                            positions = positions if isinstance(positions, list) else []
+                            global_pnl, global_roi, total_balance = _compute_global_stats(positions, [])
+                            if value_total > 0:
+                                total_balance = value_total
+                            return address, global_pnl, global_roi, total_balance
 
-                                    try:
-                                        r = await client2.get(
-                                            "https://data-api.polymarket.com/closed-positions",
-                                            params={"user": address, "limit": "500"},
-                                        )
-                                        if r.status_code == 200:
-                                            closed_positions = r.json()
-                                    except Exception:
-                                        closed_positions = []
+                    stats_results = await asyncio.gather(*[enrich(h["address"]) for h in top_holders])
+                    stats_map = {addr: (pnl, roi, bal) for addr, pnl, roi, bal in stats_results}
 
-                                    try:
-                                        r = await client2.get(
-                                            "https://data-api.polymarket.com/value",
-                                            params={"user": address},
-                                        )
-                                        if r.status_code == 200:
-                                            payload = r.json()
-                                            if isinstance(payload, list) and payload:
-                                                value_total = _parse_float(payload[0].get("value") or 0)
-                                    except Exception:
-                                        value_total = 0.0
+                for holder in top_holders:
+                    pnl, roi, bal = stats_map.get(holder["address"], (0.0, 0.0, 0.0))
+                    holder["global_pnl"] = pnl
+                    holder["global_roi"] = roi
+                    holder["total_balance"] = bal
 
-                                positions = positions if isinstance(positions, list) else []
-                                closed_positions = closed_positions if isinstance(closed_positions, list) else []
-                                global_pnl, global_roi, total_balance = _compute_global_stats(positions, closed_positions)
-                                if value_total > 0:
-                                    total_balance = value_total
-                                return address, global_pnl, global_roi, total_balance
-
-                            stats_results = await asyncio.gather(*[enrich(h["address"]) for h in top_holders])
-                            stats_map = {addr: (pnl, roi, bal) for addr, pnl, roi, bal in stats_results}
-
-                        for holder in top_holders:
-                            pnl, roi, bal = stats_map.get(holder["address"], (0.0, 0.0, 0.0))
-                            holder["global_pnl"] = pnl
-                            holder["global_roi"] = roi
-                            holder["total_balance"] = bal
-
-                        return top_holders
+                return top_holders
     except Exception as e:
         logger.debug(f"Top holders fetch failed (falling back to trades): {e}")
 
@@ -385,46 +343,14 @@ async def _fetch_top_traders(market: Market, days: int = 7, limit: int = 500, to
         semaphore = asyncio.Semaphore(8)
 
         async def fetch_user_stats(address: str):
-            async with semaphore:
-                positions = []
-                closed_positions = []
-                value_total = 0.0
-
-                try:
-                    response = await client.get(
-                        "https://data-api.polymarket.com/positions",
-                        params={"user": address, "limit": "500"},
-                    )
-                    if response.status_code == 200:
-                        positions = response.json()
-                except Exception:
-                    positions = []
-
-                try:
-                    response = await client.get(
-                        "https://data-api.polymarket.com/closed-positions",
-                        params={"user": address, "limit": "500"},
-                    )
-                    if response.status_code == 200:
-                        closed_positions = response.json()
-                except Exception:
-                    closed_positions = []
-
-                try:
-                    response = await client.get(
-                        "https://data-api.polymarket.com/value",
-                        params={"user": address},
-                    )
-                    if response.status_code == 200:
-                        payload = response.json()
-                        if isinstance(payload, list) and payload:
-                            value_total = _parse_float(payload[0].get("value") or 0)
-                except Exception:
-                    value_total = 0.0
+            positions = await fetch_positions(address)
+            value_rows = await fetch_value(address)
+            value_total = 0.0
+            if value_rows and isinstance(value_rows, list):
+                value_total = _parse_float(value_rows[0].get("value") or 0)
 
             positions = positions if isinstance(positions, list) else []
-            closed_positions = closed_positions if isinstance(closed_positions, list) else []
-            global_pnl, global_roi, total_balance = _compute_global_stats(positions, closed_positions)
+            global_pnl, global_roi, total_balance = _compute_global_stats(positions, [])
             if value_total > 0:
                 total_balance = value_total
             return address, global_pnl, global_roi, total_balance

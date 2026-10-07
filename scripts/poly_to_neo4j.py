@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/wolf/miniconda3/envs/messiah/bin/python3
 """poly_db -> Neo4j bridge (Polymarket graph projection).
 
 Projects the Polymarket-monitoring SQL state into the Wolf-Logic Neo4j instance
