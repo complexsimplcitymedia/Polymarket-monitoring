@@ -38,14 +38,37 @@ class Settings(BaseSettings):
     # News API
     NEWS_API_KEY: str = ""
 
-    # Polymarket API (Optional, for CLOB access)
+    # Polymarket API & Key Pool
     POLYMARKET_KEY_ID: str = ""
     POLYMARKET_SECRET_KEY: str = ""
     POLYMARKET_API_KEY: str = ""
     POLYMARKET_SECRET: str = ""
+    POLYMARKET_KEY_ID_2: str = ""
+    POLYMARKET_SECRET_KEY_2: str = ""
+    POLYMARKET_KEY_ID_3: str = ""
+    POLYMARKET_SECRET_KEY_3: str = ""
+    POLYMARKET_KEY_ID_4: str = ""
+    POLYMARKET_SECRET_KEY_4: str = ""
+    POLYMARKET_KEY_ID_5: str = ""
+    POLYMARKET_SECRET_KEY_5: str = ""
     POLYMARKET_PASSPHRASE: str = ""
     POLYMARKET_PRIVATE_KEY: str = ""
     POLYMARKET_FUNDER: str = ""
+
+    def get_polymarket_key_pool(self) -> list[tuple[str, str]]:
+        """Returns all configured (key_id, secret_key) pairs across the 5 slots."""
+        pool: list[tuple[str, str]] = []
+        pairs = [
+            (self.POLYMARKET_KEY_ID or self.POLYMARKET_API_KEY, self.POLYMARKET_SECRET_KEY or self.POLYMARKET_SECRET),
+            (self.POLYMARKET_KEY_ID_2, self.POLYMARKET_SECRET_KEY_2),
+            (self.POLYMARKET_KEY_ID_3, self.POLYMARKET_SECRET_KEY_3),
+            (self.POLYMARKET_KEY_ID_4, self.POLYMARKET_SECRET_KEY_4),
+            (self.POLYMARKET_KEY_ID_5, self.POLYMARKET_SECRET_KEY_5),
+        ]
+        for kid, sec in pairs:
+            if kid and sec:
+                pool.append((kid, sec))
+        return pool
     POLYMARKET_SIGNATURE_TYPE: int = 0  # 0: EOA, 1: POLY_PROXY (Magic/Email), 2: POLY_GNOSIS_SAFE
     POLYMARKET_HOST: str = "https://clob.polymarket.com"
     POLYMARKET_CHAIN_ID: int = 137
