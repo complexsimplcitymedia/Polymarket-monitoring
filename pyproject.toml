@@ -42,7 +42,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/backend"]
+packages = ["src/backend", "src/parlay_rules"]
 
 [tool.ruff]
 line-length = 100
